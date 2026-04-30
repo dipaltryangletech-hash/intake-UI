@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('currentUser');
     }
   }, [user]);
-
+  console.log("test")
   const login = (email, password) => {
     const foundUser = users.find(u => u.email === email && u.password === password);
     console.log(foundUser)
