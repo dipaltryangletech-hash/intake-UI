@@ -30,6 +30,7 @@ const Assignments = () => {
     const initialData = [
 
       // --- PURANA DATA ---
+      { id: '#M-4055', name: 'Rental Application', client: 'Anand Vadaliya', initials: 'AV', status: 'Completed', progress: 100, created: 'May 9, 2026', due: 'Dec 15, 2026', color: 'bg-green-200 text-green-600', sections: [] },
       { id: '#M-9021', name: 'Mortgage Application', client: 'John Smith', initials: 'JS', status: 'Sent', progress: 45, created: 'Mar 10, 2026', due: 'Dec 15, 2023', color: 'bg-slate-100 text-slate-600', sections: [] },
       { id: '#E-3392', name: 'Employment Verification', client: 'Amanda Lee', initials: 'AL', status: 'Needs Clarification', progress: 80, created: 'Mar 08, 2026', due: 'Dec 18, 2023', color: 'bg-blue-50 text-blue-600', sections: [] },
       { id: '#L-1102', name: 'Loan Renewal Pack', client: 'Sarah Jenkins', initials: 'SJ', status: 'Draft', progress: 0, created: 'Mar 12, 2026', due: 'Dec 20, 2023', color: 'bg-indigo-50 text-indigo-600', sections: [] },
@@ -198,7 +199,7 @@ const Assignments = () => {
     <div className="bg-[#f8fafc] px-6 py-2 font-poppins text-slate-900">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Assignments</h1>
           <p className="text-slate-500 text-sm mt-1">Manage and track your document collection pipelines.</p>
@@ -211,7 +212,7 @@ const Assignments = () => {
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
         {stats.map((stat, idx) => (
           <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
@@ -224,7 +225,7 @@ const Assignments = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-200 mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-200 mb-4 gap-4">
         <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-4 text-sm font-medium whitespace-nowrap transition-all relative ${activeTab === tab ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -232,12 +233,14 @@ const Assignments = () => {
               {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
             </button>
           ))}
-          <button
-            onClick={handleArchive}
-            className="mb-4 px-3 py-1.5 bg-blue-50 text-blue-500 text-[11px] font-bold rounded-lg border border-blue-100 hover:bg-blue-100 transition-all flex items-center gap-1.5 shadow-sm"
-          >
-            <ClipboardCheck size={14} /> Archived Assignments
-          </button>
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleArchive}
+              className="mb-4 px-3 py-1.5 bg-blue-50 text-blue-500 text-[11px] font-bold rounded-lg border border-blue-100 hover:bg-blue-100 transition-all flex items-center gap-1.5 shadow-sm animate-in fade-in zoom-in-95 duration-200"
+            >
+              <ClipboardCheck size={14} /> Archived Assignments
+            </button>
+          )}
         </div>
         <div className="relative mb-4 lg:mb-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -258,14 +261,14 @@ const Assignments = () => {
             {/* table-fixed lagane se colgroup perfect kaam karta hai */}
 
             <colgroup>
-              {[4, 17, 14, 12, 12, 10, 9, 9, 16].map((width, idx) => (
+              {[2, 16, 15, 12, 12, 10, 9, 9, 16].map((width, idx) => (
                 <col key={idx} style={{ width: `${width}%` }} />
               ))}
             </colgroup>
 
             <thead>
               <tr className="bg-slate-100/50 border-b border-slate-200">
-                <th className="px-2 py-2 text-center">
+                <th className="px-2 py-2 pl-4 text-center">
                   <input
                     type="checkbox"
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all"
@@ -273,7 +276,7 @@ const Assignments = () => {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="px-6 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Assignment Name</th>
+                <th className="px-6 -ml-2 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Assignment Name</th>
                 <th className="px-6 py-2 text-[10px] font-bold text-slate-400 uppercase ">Total Sections & Questions</th>
                 <th className="px-6 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Client</th>
                 <th className="px-6 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>

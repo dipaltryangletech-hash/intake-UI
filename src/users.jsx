@@ -209,13 +209,13 @@ const Users = () => {
                     <td className="px-6 py-1 border-b border-slate-200">
                       <div className="flex items-center">
                         <div className={`size-6 rounded-full flex items-center justify-center font-bold ${user.color}`}>{user.initials}</div>
-                        <span className="pl-2 font-bold text-slate-700">{user.name}</span>
+                        <span className="pl-2 font-semibold text-slate-700">{user.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-1 text-slate-500 font-medium border-b border-slate-200">{user.email}</td>
                     <td className="px-6 py-1 text-slate-500 font-medium border-b border-slate-200">{user.phone}</td>
                     <td className="px-6 py-1 border-b border-slate-200">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${user.status === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-500' : user.status === 'Inactive' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-amber-100 text-amber-700 border-amber-100'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${user.status === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-100' : user.status === 'Inactive' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-amber-100 text-amber-700 border-amber-100'}`}>
                         <span className={`w-1 h-1 rounded-full ${user.status === 'Active' ? 'bg-blue-600' : user.status === 'Inactive' ? 'bg-slate-500' : 'bg-amber-600'}`}></span>
                         {user.status}
                       </span>

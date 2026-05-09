@@ -87,7 +87,7 @@ const Header = () => {
           <NavLink
             to="/assignments"
             className={({ isActive }) =>
-              `py-3 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
+              `py-6 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-gray-600 hover:text-blue-600"
               }`
@@ -99,7 +99,7 @@ const Header = () => {
           <NavLink
             to="/clients"
             className={({ isActive }) =>
-              `py-3 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
+              `py-6 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-gray-600 hover:text-blue-600"
               }`
@@ -111,7 +111,7 @@ const Header = () => {
           <NavLink
             to="/users"
             className={({ isActive }) =>
-              `py-3 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
+              `py-6 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-gray-600 hover:text-blue-600"
               }`
@@ -122,7 +122,7 @@ const Header = () => {
           <NavLink
             to="/masterchecklist"
             className={({ isActive }) =>
-              `py-3 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
+              `py-6 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-gray-600 hover:text-blue-600"
               }`
@@ -133,7 +133,7 @@ const Header = () => {
           <NavLink
             to="/documents"
             className={({ isActive }) =>
-              `py-3 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
+              `py-6 -mb-px flex items-center h-full border-b-2 transition-colors ${isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-gray-600 hover:text-blue-600"
               }`
@@ -151,7 +151,7 @@ const Header = () => {
           <NavLink
             to="/assignments"
             className={({ isActive }) =>
-              `py-3 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors ${isActive
+              `py-6 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors ${isActive
                 ? "border-blue-600 text-blue-600 font-semibold"
                 : "border-transparent text-gray-600 hover:text-blue-600"
               }`
@@ -169,7 +169,7 @@ const Header = () => {
           <Link
             to="/chatbot"
             state={{ view: 'chat' }}
-            className={`py-3 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors relative ${location.pathname === '/chatbot' && location.state?.view === 'chat'
+            className={`py-6 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors relative ${location.pathname === '/chatbot' && location.state?.view === 'chat'
               ? "border-blue-600 text-blue-600 font-semibold"
               : "border-transparent text-gray-600 hover:text-blue-600"
               }`}
@@ -186,7 +186,7 @@ const Header = () => {
           <Link
             to="/chatbot"
             state={{ view: 'tasks' }}
-            className={`py-3 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors relative ${location.pathname === '/chatbot' && location.state?.view === 'tasks'
+            className={`py-6 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors relative ${location.pathname === '/chatbot' && location.state?.view === 'tasks'
               ? "border-blue-600 text-blue-600 font-semibold"
               : "border-transparent text-gray-600 hover:text-blue-600"
               }`}
@@ -217,7 +217,7 @@ const Header = () => {
           <Link
             to="/chatbot"
             state={{ view: 'documents' }}
-            className={`py-3 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors relative ${location.pathname === '/chatbot' && location.state?.view === 'documents'
+            className={`py-6 -mb-px flex items-center h-full border-b-2 gap-1 transition-colors relative ${location.pathname === '/chatbot' && location.state?.view === 'documents'
               ? "border-blue-600 text-blue-600 font-semibold"
               : "border-transparent text-gray-600 hover:text-blue-600"
               }`}

@@ -35,6 +35,25 @@ const DocumentsView = ({
   const assignmentFiles = React.useMemo(() => {
     // Collect files from all assignment submissions
     const files = [];
+
+    // Add Demo Assignment
+    const demoDate = new Date("2026-05-08");
+    files.push({
+      id: 'demo-1',
+      name: 'Payslip_2026-03 (2).pdf',
+      fileName: 'Payslip_2026-03 (2).pdf',
+      size: '0.00 MB',
+      fileSize: '0.00 MB',
+      type: 'application/pdf',
+      assignmentId: 'demo-asg-1',
+      assignmentName: 'Business Documents',
+      clientName: 'JOHN SMITH',
+      timestamp: '08/05/2026',
+      fullTimestamp: '08/05/2026',
+      dateObj: demoDate,
+      docStatus: 'approved'
+    });
+
     allAssignments.forEach(asg => {
       const submission = JSON.parse(localStorage.getItem(`submission_${asg.id}`));
       if (submission && submission.files) {
@@ -143,18 +162,18 @@ const DocumentsView = ({
       <div className="flex-1 overflow-y-auto p-6 relative scrollbar-hide">
         <div className="max-w-6xl mx-auto space-y-4">
           {docTab === 'assignmentDepository' ? (
-            <div className="space-y-8 p-1">
+            <div className="space-y-4 p-1">
               {/* Filters Container */}
-              <div className="bg-white max-w-[1450px] mx-auto p-4 mt-5 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+              <div className=" max-w-[1450px] mx-auto space-y-3">
                 {/* SELECT YEAR ROW */}
-                <div className="flex items-center gap-8">
+                <div className=" -mt-4 flex items-center gap-8">
                   <label className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] w-28 shrink-0">
                     Select Year
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setSelectedYear('All')}
-                      className={`px-2 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 ${selectedYear === 'All'
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all duration-300 ${selectedYear === 'All'
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
                         : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                         }`}
@@ -165,7 +184,7 @@ const DocumentsView = ({
                       <button
                         key={y}
                         onClick={() => setSelectedYear(y)}
-                        className={`px-2 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 ${selectedYear === y
+                        className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all duration-300 ${selectedYear === y
                           ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
                           : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                           }`}
@@ -187,7 +206,7 @@ const DocumentsView = ({
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setSelectedMonth('All')}
-                      className={`px-2 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${selectedMonth === 'All'
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest transition-all duration-300 ${selectedMonth === 'All'
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105'
                         : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                         }`}
@@ -212,10 +231,10 @@ const DocumentsView = ({
 
               {/* Grouped Content */}
               {Object.keys(groupedByClient).length > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {Object.entries(groupedByClient).map(([client, assignments]) => {
                     return (
-                      <div key={client} className="space-y-6">
+                      <div key={client} className="space-y-4">
                         {/* <div className="flex items-center gap-4">
                           <div className="w-7 h-7 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-blue-100">
                             {client.charAt(0).toUpperCase()}
@@ -228,36 +247,39 @@ const DocumentsView = ({
                         </div> */}
 
                         {Object.entries(assignments).map(([asgName, files]) => {
+
                           const isExpanded = expandedAsgs[asgName];
                           return (
+
                             <div key={asgName} className="space-y-4">
                               {/* Modern Assignment Header (Collapsible) */}
                               <div
                                 onClick={() => toggleAsg(asgName)}
-                                className="flex flex-col gap-1 px-4 cursor-pointer bg-blue-50 p-2 rounded-xl transition-all group"
+                                className="flex flex-col gap-1 px-2 cursor-pointer bg-blue-50  border border-blue-100 p-2 rounded-xl transition-all group"
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">{client}</span>
-                                  <ChevronRight size={10} className="text-slate-300" />
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {files[0]?.timestamp?.split(',')[0] || "06 MAY 2026"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <h3 className="text-lg font-black text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">
+                                <div className="flex items-center justify-between gap-2 w-full">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                      <ChevronDown size={18} className="text-slate-600" />
+                                    </div>
+                                    <h3 className="text-[13px] font-semibold text-slate-800 tracking-tight transition-colors">
                                       {asgName}
                                     </h3>
-                                    <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                                      <ChevronDown size={18} className="text-slate-400" />
+                                    <ChevronRight size={10} className="text-slate-500" />
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                      {files[0]?.timestamp?.split(',')[0] || "06 MAY 2026"}
+                                    </span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">{client}</span>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-md border border-blue-100 shadow-sm">
                                       {files.length} {files.length === 1 ? 'Document' : 'Documents'}
                                     </span>
                                   </div>
                                 </div>
+
                               </div>
 
                               {/* Document Rows (Visible only if expanded) */}
@@ -267,7 +289,7 @@ const DocumentsView = ({
                                     <div
                                       key={doc.id}
                                       onClick={() => setSelectedDoc(doc)}
-                                      className="group flex flex-col sm:flex-row items-center justify-between border border-slate-100 rounded-2xl p-2 bg-white shadow-sm  transition-all duration-300 gap-4 w-full cursor-pointer relative overflow-hidden"
+                                      className="group flex flex-col sm:flex-row items-center justify-between border border-slate-100 rounded-xl p-2 bg-white shadow-sm  transition-all duration-300 gap-4 w-full cursor-pointer relative overflow-hidden"
                                     >
 
                                       <div className="flex items-center gap-4 flex-1 overflow-hidden w-full">
@@ -278,19 +300,17 @@ const DocumentsView = ({
                                             <FileText size={16} />
                                           )}
                                         </div>
-                                        <div className="flex flex-col overflow-hidden">
-                                          <h4 className="text-sm font-bold truncate text-slate-800 group-hover:text-blue-700 transition-colors" title={doc.fileName}>
+                                        <div className="flex flex-col-3 overflow-hidden gap-3">
+                                          <h4 className="text-[12px] font-medium truncate text-slate-800 group-hover:text-blue-700 transition-colors" title={doc.fileName}>
                                             {doc.fileName}
                                           </h4>
-                                          <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
-                                              {doc.fileSize}
-                                            </span>
-                                            <div className="w-1 h-1 rounded-full bg-slate-200" />
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                              {doc.fullTimestamp?.split(',')[0]}
-                                            </span>
-                                          </div>
+                                          <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                                            {doc.fileSize}
+                                          </span>
+                                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            {doc.fullTimestamp?.split(',')[0]}
+                                          </span>
+
                                         </div>
                                       </div>
 
