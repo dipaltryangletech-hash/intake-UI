@@ -131,9 +131,9 @@ const MasterChecklist = () => {
   }, { archivedSections: 0, activeSections: 0, globalQuestions: 0 });
 
   const stats = [
-    { label: 'ARCHIVED SECTIONS', value: dynamicStats.archivedSections.toLocaleString(), highlighted: true },
-    { label: 'ACTIVE SECTIONS', value: dynamicStats.activeSections.toLocaleString(), highlighted: false },
-    { label: 'GLOBAL QUESTIONS', value: dynamicStats.globalQuestions.toLocaleString(), highlighted: false },
+    { label: 'ARCHIVED SECTIONS', value: dynamicStats.archivedSections.toLocaleString() },
+    { label: 'ACTIVE SECTIONS', value: dynamicStats.activeSections.toLocaleString() },
+    { label: 'GLOBAL QUESTIONS', value: dynamicStats.globalQuestions.toLocaleString() },
   ];
 
   // --- FILTER LOGIC ---
@@ -217,9 +217,9 @@ const MasterChecklist = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 ">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 ">
           <table className="w-full text-left border-separate border-spacing-0">
-            <thead className='border-b border-slate-200'>
+            <thead className='border border-slate-200'>
               <tr className="text-[10px] font-bold bg-slate-50 text-slate-400 uppercase tracking-widest">
                 <th className="px-4 py-3 border-b border-slate-100 rounded-tl-xl  ">Checklist Name</th>
                 <th className="px-4 py-3  border-b border-slate-100">Total Sections</th>
@@ -270,7 +270,7 @@ const MasterChecklist = () => {
                               navigate("/masterchecklistview/unknown", { state: { checklist: item } });
                             }
                           }}
-                          className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View"
                         >
                           <Eye size={16} />
@@ -282,7 +282,7 @@ const MasterChecklist = () => {
                             e.stopPropagation();
                             handleEdit(item);
                           }}
-                          className="p-1 text-slate-500 hover:text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <SquarePen size={16} />
@@ -294,7 +294,7 @@ const MasterChecklist = () => {
                             e.stopPropagation();
                             handleDelete(item.id);
                           }}
-                          className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
                         >
                           <Trash size={16} />

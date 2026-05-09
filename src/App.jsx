@@ -22,9 +22,12 @@ import MasterChecklistView from './masterchecklistview.jsx';
 import AssignmentView from "./assignmentview.jsx";
 import ChatBot from "./chatbot.jsx";
 import Documents from "./Documents.jsx";
+import ForgotPassword from "./forgotpassword.jsx";
+import ResetPassword from "./resetpassword.jsx";
 import ScrollToTop from "./components/ScrollToTop.jsx";
-import { AuthProvider } from "./AuthContext.jsx";
+import { AuthProvider } from "./Context/Auth/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ProfilePage from "./Profile.jsx";
 
 function App() {
   return (
@@ -38,12 +41,14 @@ function App() {
           {/* Public Routes */}
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword/>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Admin Specific Routes */}
           <Route path="/assignments" element={<ProtectedRoute allowedRoles={['admin', 'client']}><Assignments /></ProtectedRoute>} />
-          <Route path="/create-assignment" element={<ProtectedRoute allowedRoles={['admin']}><AssignmentBuilder /></ProtectedRoute>} />
-          <Route path="/assignments/view/:id" element={<ProtectedRoute allowedRoles={['admin']}><AssignmentView /></ProtectedRoute>} />
-          <Route path="/assignments/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><AssignmentBuilder /></ProtectedRoute>} />
+          <Route path="/create-assignment" element={<ProtectedRoute allowedRoles={['admin', 'client']}><AssignmentBuilder /></ProtectedRoute>} />
+          <Route path="/assignments/view/:id" element={<ProtectedRoute allowedRoles={['admin', 'client']}><AssignmentView /></ProtectedRoute>} />
+          <Route path="/assignments/edit/:id" element={<ProtectedRoute allowedRoles={['admin', 'client']}><AssignmentBuilder /></ProtectedRoute>} />
           <Route path="/adminassignmentreview" element={<ProtectedRoute allowedRoles={['admin']}><AdminAssignmentReview /></ProtectedRoute>} />
           <Route path="/adminassignmentreview/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminAssignmentReview /></ProtectedRoute>} />
           <Route path="/clients" element={<ProtectedRoute allowedRoles={['admin']}><Clients /></ProtectedRoute>} />
@@ -57,12 +62,9 @@ function App() {
           <Route path="/review" element={<ProtectedRoute allowedRoles={['admin']}><ReviewWorkspace /></ProtectedRoute>} />
 
           {/* Client Specific Routes */}
-          <Route path="/clientportal" element={<ProtectedRoute allowedRoles={['client']}><ClientPortal /></ProtectedRoute>} />
           <Route path="/assignment-fill/:id" element={<ProtectedRoute allowedRoles={['client']}><ClientAssignmentFill /></ProtectedRoute>} />
           <Route path="/chatbot" element={<ProtectedRoute allowedRoles={['client', 'admin']}><ChatBot /></ProtectedRoute>} />
-
-          {/* Shared / Profile Routes */}
-          <Route path="/userdetails" element={<ProtectedRoute><UserDetails /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
           {/* Root Redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />

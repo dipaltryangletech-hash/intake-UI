@@ -256,7 +256,7 @@ const MasterChecklistBuilder = () => {
             {/* MAIN FORM AREA (UI UNCHANGED) */}
             <div className=" mt-5 max-w-5xl mx-auto p-2 md:p-2 space-y-8">
                 {/* BASIC INFO */}
-                <section className="relative overflow-visible bg-[#2563EB] rounded-xl border border-blue-700/50 shadow-2xl transition-all duration-500 group">
+                <section className="relative overflow-visible bg-[#eff6ff] rounded-xl border border-blue-700/50 transition-all duration-500 group">
                     {/* Decorative Ambient Glow */}
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-400/20 blur-[100px] rounded-full group-hover:bg-blue-400/30 transition-all duration-700"></div>
                     <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full"></div>
@@ -267,13 +267,13 @@ const MasterChecklistBuilder = () => {
                         <div className="flex-1 w-full space-y-3">
                             {/* Checklist Name Input */}
                             <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-[10px] text-[#bfdbfe] font-black uppercase tracking-[0.2em] ml-1">
+                                <label className="flex items-center gap-2 text-[10px] text-gray-700 font-black uppercase tracking-[0.2em] ml-1">
                                     Checklist Name <span className="text-rose-400 font-bold">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     placeholder="e.g. Annual Compliance Audit 2024"
-                                    className="pl-2 w-full bg-[#1B52C9] text-white text-lg font-medium border border-blue-400/20 rounded-lg px-2 outline-none transition-all duration-300 placeholder:text-white/30 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10  shadow-inner"
+                                    className="pl-2 py-2 w-full bg-white/100 text-gray-700 text-sm font-medium border border-blue-400/20 rounded-lg px-2 outline-none transition-all duration-300 placeholder:text-gray-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 "
                                     value={checklist.name}
                                     onChange={(e) => setChecklist({ ...checklist, name: e.target.value })}
                                 />
@@ -281,13 +281,13 @@ const MasterChecklistBuilder = () => {
 
                             {/* Description Textarea */}
                             <div className="space-y-2 ">
-                                <label className="text-[10px] font-black text-[#bfdbfe] uppercase tracking-[0.2em] ml-1 block">
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.2em] ml-1 block">
                                     Description (Optional)
                                 </label>
                                 <textarea
                                     rows="2"
                                     placeholder="Describe the purpose and scope of this master checklist..."
-                                    className=" w-full bg-[#1B52C9] text-blue-50 text-sm border border-blue-400/20 rounded-xl px-2 py-2 outline-none transition-all duration-300 placeholder:text-white/30 resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 shadow-inner 
+                                    className=" w-full bg-white/100 text-gray-700 text-sm border border-blue-400/20 rounded-xl px-2 py-2 outline-none transition-all duration-300 placeholder:text-gray-300 resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 shadow-inner 
                                     /* --- TAILWIND SCROLLBAR CLASSES --- */
                                     [&::-webkit-scrollbar]:w-1.5
                                     [&::-webkit-scrollbar-track]:bg-transparent
@@ -303,43 +303,42 @@ const MasterChecklistBuilder = () => {
 
                         {/* RIGHT SIDE: Status Dropdown Card */}
                         <div className="w-full lg:w-auto lg:min-w-[240px]">
-                            <div className="bg-[#0f172a]/30 p-3 rounded-2xl border border-blue-400/20 backdrop-blur-md">
 
 
-                                {/* --- SEGMENTED SWITCH --- */}
-                                <div className="flex p-1 bg-[#011e5c] rounded-2xl border border-blue-800/30 shadow-xl">
-                                    {['Active', 'Archived'].map((statusOption) => {
-                                        const isActive = checklist.status === statusOption;
+                            {/* --- SEGMENTED SWITCH --- */}
+                            <div className="flex p-1 bg-[#fafafa63] rounded-xl border border-[#c7d4f9]">
+                                {['Active', 'Archived'].map((statusOption) => {
+                                    const isActive = checklist.status === statusOption;
 
-                                        return (
-                                            <button
-                                                key={statusOption}
-                                                type="button"
-                                                onClick={() => setChecklist({ ...checklist, status: statusOption })}
-                                                className={`
+                                    return (
+                                        <button
+                                            key={statusOption}
+                                            type="button"
+                                            onClick={() => setChecklist({ ...checklist, status: statusOption })}
+                                            className={`
               flex-1 flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
               text-[11px] font-black uppercase tracking-widest transition-all duration-300
               ${isActive
-                                                        ? 'bg-[#1e293b]/50 border border-blue-400/30 text-white shadow-inner'
-                                                        : 'text-slate-500 hover:text-slate-300 border border-transparent'
-                                                    }
+                                                    ? 'bg-[#000000e0] border border-blue-400/30 text-white shadow-inner'
+                                                    : 'text-slate-500 hover:text-slate-500 border border-transparent'
+                                                }
             `}
-                                            >
-                                                {/* Status Indicator Dot */}
-                                                <div className={`
+                                        >
+                                            {/* Status Indicator Dot */}
+                                            <div className={`
               w-2 h-2 rounded-full transition-all duration-500
               ${statusOption === 'Active'
-                                                        ? (isActive ? 'bg-emerald-400 shadow-[0_0_10px_#34d399]' : 'bg-emerald-500/40')
-                                                        : (isActive ? 'bg-slate-400 shadow-[0_0_10px_#94a3b8]' : 'bg-white/50 ')
-                                                    }
+                                                    ? (isActive ? 'bg-emerald-400 shadow-[0_0_10px_#34d399]' : 'bg-emerald-500/40')
+                                                    : (isActive ? 'bg-slate-400 shadow-[0_0_10px_#94a3b8]' : 'bg-white/50 ')
+                                                }
             `}></div>
 
-                                                {statusOption}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                            {statusOption}
+                                        </button>
+                                    );
+                                })}
                             </div>
+
                         </div>
                     </div>
                 </section>
@@ -403,7 +402,7 @@ const MasterChecklistBuilder = () => {
                                                         >
                                                             {/* --- HEADER PART --- */}
                                                             <div
-                                                                className={`p-4 flex items-center justify-between cursor-pointer transition-colors ${q.isExpanded ? 'bg-slate-50/50' : 'hover:bg-slate-50/30'}`}
+                                                                className={`p-2 flex items-center justify-between cursor-pointer transition-colors ${q.isExpanded ? 'bg-slate-50/50' : 'hover:bg-slate-50/30'}`}
                                                                 onClick={() => updateQuestion(section.id, q.id, 'isExpanded', !q.isExpanded)}
                                                             >
                                                                 <div className="flex items-center justify-between gap-4 flex-1">
@@ -584,7 +583,7 @@ const MasterChecklistBuilder = () => {
                                                                             </label>
                                                                         </div>
 
-                                                                        <div className="pb-1 flex flex-end max-w-[300px] w-full">
+                                                                        <div className="pb-1 flex flex-end ">
                                                                             {!q.attachedFileName ? (
                                                                                 <label className="text-slate-500 hover:text-blue-500 border -mb-1 hover:border-blue-400 hover:bg-blue-50 p-1 rounded-lg cursor-pointer transition-all">
                                                                                     <div className="p-1 hover:bg-blue-50 flex items-center gap-2 max-w-[170px]">
@@ -606,7 +605,7 @@ const MasterChecklistBuilder = () => {
                                                                             ) : (
                                                                                 <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 px-2 py-2 -mb-1 rounded-md animate-in fade-in zoom-in-95">
                                                                                     <FileText size={14} className="text-blue-600" />
-                                                                                    <span className="text-[10px] font-bold text-blue-700 truncate max-w-[180px]">
+                                                                                    <span className="text-[10px] font-bold text-blue-700 truncate max-w-[155px]">
                                                                                         {q.attachedFileName}
                                                                                     </span>
                                                                                     {/* Optional: Add a button to remove the file */}

@@ -35,6 +35,21 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id });
     const [openColTypeDropdownId, setOpenColTypeDropdownId] = useState(null);
     const [isAnswerTypeOpen, setIsAnswerTypeOpen] = useState(false);
+    const answerTypeRef = useRef(null);
+    const colTypeRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (answerTypeRef.current && !answerTypeRef.current.contains(event.target)) {
+                setIsAnswerTypeOpen(false);
+            }
+            if (colTypeRef.current && !colTypeRef.current.contains(event.target)) {
+                setOpenColTypeDropdownId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const tableColumnTypes = ["Text", "Number", "Currency", "Date", "Email", "Phone"];
 
@@ -104,7 +119,7 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                         {/* 1. ANSWER TYPE */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Answer Type</label>
-                            <div className="relative">
+                            <div className="relative" ref={answerTypeRef}>
                                 <div
                                     onClick={() => setIsAnswerTypeOpen(!isAnswerTypeOpen)}
                                     className={`w-full p-2 rounded-lg border-2 bg-white text-[11px] font-bold text-slate-600 flex justify-between items-center cursor-pointer uppercase transition-all ${isAnswerTypeOpen ? "border-blue-500" : "border-slate-200 hover:border-slate-300"}`}
@@ -169,14 +184,21 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                                         className="hidden"
                                         onChange={(e) => {
                                             const file = e.target.files[0];
-                                            if (file) updateQuestion(sIdx, qIdx, 'attachedFileName', file.name);
+                                            if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = (event) => {
+                                                    updateQuestion(sIdx, qIdx, 'attachedFileName', file.name);
+                                                    updateQuestion(sIdx, qIdx, 'attachedFileData', event.target.result);
+                                                };
+                                                reader.readAsDataURL(file);
+                                            }
                                         }}
                                     />
                                 </label>
                             ) : (
                                 <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 px-2 py-2 -mb-1 rounded-md animate-in fade-in zoom-in-95">
                                     <FileText size={14} className="text-blue-600" />
-                                    <span className="text-[10px] font-bold text-blue-700 truncate max-w-[180px]">
+                                    <span className="text-[10px] font-bold text-blue-700 truncate max-w-[150px]">
                                         {q.attachedFileName}
                                     </span>
                                     <button
@@ -192,7 +214,7 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
 
                     {/* 3. DYNAMIC DATA SECTION (Options/Table) */}
                     {(q.answerType !== 'SHORT_TEXT' && q.answerType !== 'LONG_TEXT' && q.answerType !== 'YES_NO') && (
-                        <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] p-4 mt-6 animate-in fade-in duration-300">
+                        <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-4 mt-6 animate-in fade-in duration-300">
                             {/* OPTIONS LIST */}
                             {(q.answerType === 'MULTIPLE_CHOICE' || q.answerType === 'CHECKBOX') && (
                                 <div className="space-y-4">
@@ -212,9 +234,12 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                                             const isLastItem = index === (q.options || []).length - 1;
                                             return (
                                                 <div key={opt.id} className="flex items-center gap-3 animate-in zoom-in-95">
+                                                    <span className="text-[10px] font-semibold text-slate-400 px-2 min-w-[24px]">
+                                                        {index + 1}
+                                                    </span>
                                                     <input
                                                         type="text"
-                                                        className="flex-1 text-sm font-bold text-slate-700 border border-slate-200 p-2 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none bg-white shadow-sm"
+                                                        className="flex-1 text-[12px] font-semibold text-slate-700 border border-slate-200 p-2 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none bg-white shadow-sm"
                                                         placeholder={`Option ${index + 1}...`}
                                                         value={opt.text}
                                                         onChange={(e) => updateOption(opt.id, e.target.value)}
@@ -256,18 +281,18 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                                         {(q.tableColumns || []).map((col, index) => {
                                             const isLastItem = index === (q.tableColumns || []).length - 1;
                                             return (
-                                                <div key={col.id} className="flex flex-col md:flex-row items-center gap-3 bg-white p-2 transition-all hover:border-slate-200">
+                                                <div key={col.id} className="flex flex-col md:flex-row items-center gap-3 bg-white transition-all hover:border-slate-200">
                                                     <span className="text-[10px] font-bold text-slate-300 px-2 min-w-[24px]">
                                                         {index + 1}
                                                     </span>
                                                     <input
                                                         type="text"
-                                                        className="flex-1 w-full text-xs font-bold text-slate-700 border border-slate-100 p-2 rounded-xl outline-none focus:ring-1 focus:border-blue-500"
+                                                        className="flex-1 w-full text-xs font-bold text-slate-700 border border-slate-100 p-2 rounded-lg outline-none focus:ring-1 focus:border-blue-500"
                                                         placeholder="Column Label"
                                                         value={col.name}
                                                         onChange={(e) => updateTableColumn(col.id, 'name', e.target.value)}
                                                     />
-                                                    <div className="relative w-full md:w-40 overflow-visible">
+                                                    <div className="relative w-full md:w-40 overflow-visible" ref={colTypeRef}>
                                                         <div onClick={() => setOpenColTypeDropdownId(openColTypeDropdownId === col.id ? null : col.id)} className={`w-full text-[11px] font-black text-slate-500 border p-2.5 rounded-xl bg-slate-50 flex justify-between items-center cursor-pointer transition-all shadow-sm hover:border-slate-300 ${openColTypeDropdownId === col.id ? 'border-blue-500 ring-2 ring-blue-50' : 'border-slate-100'}`}>
                                                             <span className="uppercase">{col.type}</span>
                                                             <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${openColTypeDropdownId === col.id ? 'rotate-180 text-blue-500' : ''}`} />
@@ -429,6 +454,21 @@ const AssignmentBuilder = () => {
     const { id: urlId } = useParams();
     const isEditMode = !!urlId;
     const navigate = useNavigate();
+
+    const handleCancel = () => {
+        navigate(-1);
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [navigate]);
+
     // reviewer1, reviewer2, final finalApprover dropdown 
     const reviewer1Ref = useRef(null);
     const [isReviewer1Open, setIsReviewer1Open] = useState(false);
@@ -436,7 +476,7 @@ const AssignmentBuilder = () => {
     const reviewer2Ref = useRef(null);
     const [isReviewer2Open, setIsReviewer2Open] = useState(false);
     const [reviewer2Search, setReviewer2Search] = useState("");
-    const [finalApproverRef, setFinalApproverRef] = useState(null);
+    const finalApproverRef = useRef(null);
     const [isFinalApproverOpen, setIsFinalApproverOpen] = useState(false);
     const [finalApproverSearch, setFinalApproverSearch] = useState("");
     const [fetchedUsers, setFetchedUsers] = useState([]);
@@ -470,6 +510,7 @@ const AssignmentBuilder = () => {
     const priorityRef = useRef(null);
 
     const [clients, setClients] = useState([]);
+    const [users, setUsers] = useState([]);
     const [assignment, setAssignment] = useState({
         id: `ASG-${Math.floor(100000 + Math.random() * 900000)}`,
         name: '',
@@ -488,7 +529,10 @@ const AssignmentBuilder = () => {
 
     useEffect(() => {
         const savedClients = JSON.parse(localStorage.getItem('client')) || [];
-        setClients(savedClients.map(c => c.name));
+        setClients(savedClients);
+
+        const savedUsers = JSON.parse(localStorage.getItem('my_app_users')) || [];
+        setUsers(savedUsers);
     }, []);
 
     useEffect(() => {
@@ -498,6 +542,15 @@ const AssignmentBuilder = () => {
             }
             if (priorityRef.current && !priorityRef.current.contains(event.target)) {
                 setIsPriorityOpen(false);
+            }
+            if (reviewer1Ref.current && !reviewer1Ref.current.contains(event.target)) {
+                setIsReviewer1Open(false);
+            }
+            if (reviewer2Ref.current && !reviewer2Ref.current.contains(event.target)) {
+                setIsReviewer2Open(false);
+            }
+            if (finalApproverRef.current && !finalApproverRef.current.contains(event.target)) {
+                setIsFinalApproverOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -634,7 +687,22 @@ const AssignmentBuilder = () => {
         }
     };
 
-    const filteredClients = clients.filter(c => c.toLowerCase().includes(clientSearch.toLowerCase()));
+    const filteredClients = clients.filter(c =>
+        c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        (c.company && c.company.toLowerCase().includes(clientSearch.toLowerCase()))
+    );
+    const filteredReviewer1 = users.filter(u =>
+        u.name.toLowerCase().includes(reviewer1Search.toLowerCase()) ||
+        (u.email && u.email.toLowerCase().includes(reviewer1Search.toLowerCase()))
+    );
+    const filteredReviewer2 = users.filter(u =>
+        u.name.toLowerCase().includes(reviewer2Search.toLowerCase()) ||
+        (u.email && u.email.toLowerCase().includes(reviewer2Search.toLowerCase()))
+    );
+    const filteredFinalApprover = users.filter(u =>
+        u.name.toLowerCase().includes(finalApproverSearch.toLowerCase()) ||
+        (u.email && u.email.toLowerCase().includes(finalApproverSearch.toLowerCase()))
+    );
 
     useEffect(() => {
         if (isEditMode) {
@@ -651,7 +719,7 @@ const AssignmentBuilder = () => {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-poppins pb-0">
-            <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center mb-8">
+            <header className="bg-white border-b border-slate-200 px-8 py-2 flex justify-between items-center mb-3">
                 {/* LEFT SIDE: Title Group */}
                 <div className="flex items-center gap-3">
                     <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-200">
@@ -664,6 +732,13 @@ const AssignmentBuilder = () => {
 
                 {/* RIGHT SIDE: Buttons Grouped Together */}
                 <div className="flex items-center gap-5">
+                    <button
+                        onClick={handleCancel}
+                        className="text-slate-500 hover:text-slate-800 px-4 py-2.5 text-[10px] border border-slate-300 hover:bg-gray-50 px-6 py-2 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 transition-colors "
+                    >
+                        Cancel
+                    </button>
+
                     <button
                         onClick={saveAssignment}
                         className="bg-blue-50 text-blue-600 border-2 border-blue-300 px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-100 transition-colors"
@@ -690,7 +765,7 @@ const AssignmentBuilder = () => {
                     </div>
                 )}
 
-                <div className="bg-blue-100 transition-colors duration-300 rounded-xl p-3 shadow-2xl mb-12 text-black border border-[#2d4a9b]">
+                <div className="bg-[#eef2ff] rounded-2xl p-5 mb-12 text-black border border-[#e0e7ff] shadow-sm">
                     <div className="grid grid-cols-12 gap-3">
                         <div className="col-span-8 space-y-3">
                             <div className="grid grid-cols-2 gap-3">
@@ -701,9 +776,9 @@ const AssignmentBuilder = () => {
                                     <div
                                         onClick={() => setIsClientOpen(!isClientOpen)}
                                         className={`w-full bg-white/100 border rounded-xl px-4 py-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer transition-all
-                    ${isClientOpen ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-[#2d4a9b] hover:border-[#3d5bbd]'}`}
+                    ${isClientOpen ? 'border-blue-400 ring-1 ring-blue-400/20' : 'border-slate-100 hover:border-[#c7d4f9]'}`}
                                     >
-                                        <span className={assignment.client ? "text-blue-600" : "text-gray-400"}>
+                                        <span className={assignment.client ? "text-slate-600 font-semibold" : "text-slate-400 font-medium"}>
                                             {assignment.client || "Select Client..."}
                                         </span>
                                         <ChevronDown size={16} className={`text-blue-600 transition-transform duration-300 ${isClientOpen ? 'rotate-180' : ''}`} />
@@ -711,16 +786,16 @@ const AssignmentBuilder = () => {
 
                                     {/* DROPDOWN CONTAINER (Search + List) */}
                                     {isClientOpen && (
-                                        <div className="absolute z-[80] w-full mt-2 bg-white overflow-visible rounded-xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-slide-in-from-top-2 scrollbar-hide">
+                                        <div className="absolute z-[80] w-full mt-2 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-slide-in-from-top-2">
                                             {/* SEARCH BAR INSIDE DROPDOWN */}
-                                            <div className="p-2 bg-white border-b">
+                                            <div className="bg-white border-b border-slate-100">
                                                 <div className="relative group">
-                                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500/50 group-focus-within:text-slate-400" />
+                                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                                     <input
                                                         autoFocus
                                                         type="text"
                                                         placeholder="Search client name..."
-                                                        className="w-full bg-white rounded-lg pl-9 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-400 transition-all text-slate-500 placeholder:text-slate-400/70"
+                                                        className="w-full bg-white rounded-lg pl-9 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-400 transition-all text-slate-600 placeholder:text-slate-400"
                                                         value={clientSearch}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onChange={(e) => {
@@ -733,25 +808,27 @@ const AssignmentBuilder = () => {
                                             </div>
 
                                             {/* CLIENT LIST */}
-                                            <div className="bg-white shadow-2xl p-2">
-                                                <div className="max-h-60 overflow-y-auto scrollbar-hide">
+                                            <div className="bg-white p-2">
+                                                <div className="max-h-48 overflow-y-auto scrollbar-hide space-y-1">
                                                     {filteredClients.length > 0 ? (
                                                         filteredClients.map((c, idx) => (
                                                             <div
-                                                                key={c}
+                                                                key={c.id}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setAssignment({ ...assignment, client: c });
+                                                                    setAssignment({ ...assignment, client: c.name });
                                                                     setClientSearch("");
                                                                     setIsClientOpen(false);
                                                                 }}
-                                                                className={`group px-4 py-3 text-[12px] font-bold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center mb-1 last:mb-0 border rounded-xl
-                                            ${assignment.client === c
-                                                                        ? 'bg-white border-slate-100 text-blue-600 shadow-sm'
-                                                                        : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-slate-50 hover:text-blue-600'}`}
+                                                                className={`group px-4 py-1 text-[10px] font-semibold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center mb-1 last:mb-0 border rounded-md
+                                            ${assignment.client === c.name
+                                                                        ? 'bg-blue-50 border-[#c7d4f9] text-blue-600 shadow-sm'
+                                                                        : 'bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:border-slate-100 hover:text-blue-600'}`}
                                                             >
-                                                                <span>{c}</span>
-                                                                {assignment.client === c && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span>{c.name}</span>
+                                                                </div>
+                                                                {assignment.client === c.name && (
                                                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                                                                 )}
                                                             </div>
@@ -769,7 +846,7 @@ const AssignmentBuilder = () => {
 
                                 <div>
                                     <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">Assignment Name <span className='text-red-400 text-[12px]'>*</span></label>
-                                    <input type="text" placeholder="e.g. Annual Audit" className="w-full bg-white/100 border border-[#2d4a9b] rounded-xl px-2 py-2.5 text-xs font-semibold outline-none focus:border-blue-400 transition-all text-blue-600 placeholder:text-slate-400" value={assignment.name} onChange={(e) => setAssignment({ ...assignment, name: e.target.value })} />
+                                    <input type="text" placeholder="e.g. Annual Audit" className="w-full bg-white/100 border border-slate-100 rounded-xl px-2 py-2.5 text-xs font-semibold outline-none focus:border-[#c7d4f9] hover:border-[#c7d4f9] transition-all text-slate-600 placeholder:text-slate-400 placeholder:font-medium" value={assignment.name} onChange={(e) => setAssignment({ ...assignment, name: e.target.value })} />
                                 </div>
                             </div>
 
@@ -783,16 +860,16 @@ const AssignmentBuilder = () => {
                                 <div className="relative" ref={reviewer1Ref}>
                                     {/* LABEL */}
                                     <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">
-                                        1st Reviewer <span className='text-red-400 text-[12px]'>*</span>
+                                        1st Reviewer
                                     </label>
 
                                     {/* TRIGGER / SELECT FIELD */}
                                     <div
                                         onClick={() => setIsReviewer1Open(!isReviewer1Open)}
                                         className={`w-full bg-white/100 border rounded-xl px-4 py-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer transition-all
-        ${isReviewer1Open ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-[#2d4a9b] hover:border-[#3d5bbd]'}`}
+        ${isReviewer1Open ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-slate-100 hover:border-[#c7d4f9]'}`}
                                     >
-                                        <span className={assignment.reviewer1 ? "text-blue-600" : "text-gray-400"}>
+                                        <span className={assignment.reviewer1 ? "text-slate-600 font-semibold" : "text-slate-400 font-medium"}>
                                             {assignment.reviewer1 || "Select 1st Reviewer..."}
                                         </span>
                                         <ChevronDown size={16} className={`text-blue-600 transition-transform duration-300 ${isReviewer1Open ? 'rotate-180' : ''}`} />
@@ -803,7 +880,7 @@ const AssignmentBuilder = () => {
                                         <div className="absolute z-[70] w-full mt-2 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-slide-in-from-top-2">
 
                                             {/* SEARCH BAR */}
-                                            <div className="p-2 bg-white border-b border-slate-100">
+                                            <div className=" bg-white border-b border-slate-100">
                                                 <div className="relative group">
                                                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                                     <input
@@ -821,34 +898,36 @@ const AssignmentBuilder = () => {
                                             {/* LIST USING YOUR FETCHED CLIENTS */}
                                             <div className="bg-white p-2">
                                                 <div className="max-h-48 overflow-y-auto scrollbar-hide space-y-1">
-                                                    {filteredClients.length > 0 ? (
-                                                        filteredClients.map((c, idx) => (
+                                                    {filteredReviewer1.length > 0 ? (
+                                                        filteredReviewer1.map((c, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     // 1. Set the reviewer name to the clicked item
-                                                                    setAssignment({ ...assignment, reviewer1: c });
+                                                                    setAssignment({ ...assignment, reviewer1: c.name });
                                                                     // 2. Clear the search text
                                                                     setReviewer1Search("");
                                                                     // 3. Close the dropdown
                                                                     setIsReviewer1Open(false);
                                                                 }}
-                                                                className={`group px-4 py-3 text-[12px] font-bold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center rounded-xl border
-                                ${assignment.reviewer1 === c
-                                                                        ? 'bg-blue-50 border-blue-100 text-[#1B52C9] shadow-sm'
-                                                                        : 'bg-white border-transparent text-[#475569] hover:bg-slate-50 hover:border-slate-100 hover:text-[#1e293b]'}`}
+                                                                className={`group px-4 py-1 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
+                                ${assignment.reviewer1 === c.name
+                                                                        ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
+                                                                        : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600'}`}
                                                             >
-                                                                <span>{c}</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span>{c.name}</span>
+                                                                </div>
 
                                                                 {/* Blue dot indicator */}
-                                                                {assignment.reviewer1 === c && (
+                                                                {assignment.reviewer1 === c.name && (
                                                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                                                                 )}
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        <div className="p-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest italic">
+                                                        <div className="p-8 text-center text-slate-400 text-[10px] font-bold tracking-widest italic">
                                                             No reviewers found
                                                         </div>
                                                     )}
@@ -864,16 +943,16 @@ const AssignmentBuilder = () => {
                                 <div className="relative" ref={reviewer2Ref}>
                                     {/* LABEL */}
                                     <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">
-                                        2nd Reviewer <span className='text-red-400 text-[12px]'>*</span>
+                                        2nd Reviewer
                                     </label>
 
                                     {/* TRIGGER / SELECT FIELD */}
                                     <div
                                         onClick={() => setIsReviewer2Open(!isReviewer2Open)}
                                         className={`w-full bg-white/100 border rounded-xl px-4 py-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer transition-all
-        ${isReviewer2Open ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-[#2d4a9b] hover:border-[#3d5bbd]'}`}
+        ${isReviewer2Open ? 'hover:border-[#c7d4f9] ring-1 ring-blue-400/20 ' : 'border-slate-100 hover:border-[#c7d4f9]'}`}
                                     >
-                                        <span className={assignment.reviewer2 ? "text-blue-600" : "text-gray-400"}>
+                                        <span className={assignment.reviewer2 ? "text-slate-600 font-semibold" : "text-slate-400 font-medium"}>
                                             {assignment.reviewer2 || "Select 2nd Reviewer..."}
                                         </span>
                                         <ChevronDown size={16} className={`text-blue-600 transition-transform duration-300 ${isReviewer2Open ? 'rotate-180' : ''}`} />
@@ -884,7 +963,7 @@ const AssignmentBuilder = () => {
                                         <div className="absolute z-[70] w-full mt-2 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-slide-in-from-top-2">
 
                                             {/* SEARCH BAR */}
-                                            <div className="p-2 bg-white border-b border-slate-100">
+                                            <div className=" bg-white border-b border-slate-100">
                                                 <div className="relative group">
                                                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                                     <input
@@ -902,28 +981,30 @@ const AssignmentBuilder = () => {
                                             {/* LIST USING YOUR FETCHED CLIENTS */}
                                             <div className="bg-white p-2">
                                                 <div className="max-h-48 overflow-y-auto scrollbar-hide space-y-1">
-                                                    {filteredClients.length > 0 ? (
-                                                        filteredClients.map((c, idx) => (
+                                                    {filteredReviewer2.length > 0 ? (
+                                                        filteredReviewer2.map((c, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     // 1. Set the reviewer name to the clicked item
-                                                                    setAssignment({ ...assignment, reviewer2: c });
+                                                                    setAssignment({ ...assignment, reviewer2: c.name });
                                                                     // 2. Clear the search text
                                                                     setReviewer2Search("");
                                                                     // 3. Close the dropdown
                                                                     setIsReviewer2Open(false);
                                                                 }}
-                                                                className={`group px-4 py-3 text-[12px] font-bold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center rounded-xl border
-                                ${assignment.reviewer2 === c
-                                                                        ? 'bg-blue-50 border-blue-100 text-[#1B52C9] shadow-sm'
-                                                                        : 'bg-white border-transparent text-[#475569] hover:bg-slate-50 hover:border-slate-100 hover:text-[#1e293b]'}`}
+                                                                className={`group px-4 py-1 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
+                                ${assignment.reviewer2 === c.name
+                                                                        ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
+                                                                        : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600'}`}
                                                             >
-                                                                <span>{c}</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span>{c.name}</span>
+                                                                </div>
 
                                                                 {/* Blue dot indicator */}
-                                                                {assignment.reviewer2 === c && (
+                                                                {assignment.reviewer2 === c.name && (
                                                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                                                                 )}
                                                             </div>
@@ -941,14 +1022,14 @@ const AssignmentBuilder = () => {
                             </div>
                             <div>
                                 <label className="text-[10px] ml-1 text-gray-700 font-black uppercase mb-2 block tracking-[0.2em]">Description (Optional)</label>
-                                <textarea placeholder="Describe scope..." rows={6} className="w-full bg-white/100 border border-[#2d4a9b] rounded-xl px-4 py-2 text-xs font-semibold outline-none focus:border-blue-400 transition-all text-blue-600 placeholder:text-gray-400 resize-none" />
+                                <textarea placeholder="Describe scope..." rows={6} className="w-full bg-white/100 border border-slate-100 hover:border-[#c7d4f9] rounded-xl px-4 py-2 text-xs font-semibold outline-none focus:border-[#c7d4f9] transition-all text-slate-600 font-semibold placeholder:text-slate-400 placeholder:font-medium resize-none" />
                             </div>
                         </div>
 
                         <div className="col-span-4 flex flex-col">
-                            <label className="text-[10px] ml-1 font-black text-gray-700 uppercase block tracking-[0.2em]">Set Priority<span className="text-red-400 text-[12px]"> *</span></label>
+                            <label className="text-[10px] ml-1 font-black text-gray-700 uppercase block tracking-[0.2em]">Set Priority<span className="text-red-400 text-[12px] "> *</span></label>
                             <div className="relative" ref={priorityRef}>
-                                <button onClick={() => setIsPriorityOpen(!isPriorityOpen)} className="w-full mt-2 flex justify-between items-center bg-white/100 border border-[#2d4a9b] rounded-xl px-4 py-3 text-xs font-semibold uppercase text-slate-400 ">
+                                <button onClick={() => setIsPriorityOpen(!isPriorityOpen)} className="w-full mt-2 flex justify-between items-center bg-white/100 border border-slate-100 rounded-xl px-4 py-3 text-xs font-semibold uppercase text-slate-400 hover:border-[#c7d4f9] ">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${assignment.priority === 'High' ? 'bg-red-400' : 'bg-emerald-400'}`} />
                                         {assignment.priority}
@@ -975,9 +1056,10 @@ const AssignmentBuilder = () => {
                                 <div
                                     onClick={() => setIsFinalApproverOpen(!isFinalApproverOpen)}
                                     className={`w-full bg-white/100 border rounded-xl px-4 py-2.5 text-xs font-semibold flex justify-between items-center cursor-pointer transition-all
-        ${isFinalApproverOpen ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-[#2d4a9b] hover:border-[#3d5bbd]'}`}
+        ${isFinalApproverOpen ? 'border-blue-400 ring-1 ring-blue-400/20' : ' border-slate-100 hover:border-[#c7d4f9]'}`}
                                 >
-                                    <span className={assignment.finalApprover ? "text-blue-600" : "text-gray-400"}>
+
+                                    <span className={assignment.finalApprover ? "text-slate-600 font-semibold" : "text-slate-400 font-medium"}>
                                         {assignment.finalApprover || "Select Final Reviewer..."}
                                     </span>
                                     <ChevronDown size={16} className={`text-blue-600 transition-transform duration-300 ${isFinalApproverOpen ? 'rotate-180' : ''}`} />
@@ -988,7 +1070,7 @@ const AssignmentBuilder = () => {
                                     <div className="absolute z-[70] w-full mt-2 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-slide-in-from-top-2">
 
                                         {/* SEARCH BAR */}
-                                        <div className="p-2 bg-white border-b border-slate-100">
+                                        <div className=" bg-white border-b border-slate-100">
                                             <div className="relative group">
                                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                                 <input
@@ -997,7 +1079,7 @@ const AssignmentBuilder = () => {
                                                     placeholder="Search reviewer name..."
                                                     className="w-full bg-white rounded-lg pl-9 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-400 transition-all text-slate-600 placeholder:text-slate-400"
                                                     value={finalApproverSearch}
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    onClick={(e) => e.stopPropagation()} // Keeps dropdown open when clicking input
                                                     onChange={(e) => setFinalApproverSearch(e.target.value)}
                                                 />
                                             </div>
@@ -1006,22 +1088,27 @@ const AssignmentBuilder = () => {
                                         {/* LIST */}
                                         <div className="bg-white p-2">
                                             <div className="max-h-48 overflow-y-auto scrollbar-hide space-y-1">
-                                                {filteredClients.length > 0 ? (
-                                                    filteredClients.map((c, idx) => (
+                                                {filteredFinalApprover.length > 0 ? (
+                                                    filteredFinalApprover.map((c, idx) => (
                                                         <div
                                                             key={idx}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleSelectFinalApprover(c); // Updated event handler call
+                                                                setAssignment({ ...assignment, finalApprover: c.name });
+                                                                setFinalApproverSearch("");
+                                                                setIsFinalApproverOpen(false);
                                                             }}
-                                                            className={`group px-4 py-3 text-[12px] font-bold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center rounded-xl border
-                                    ${assignment.finalApprover === c
-                                                                    ? 'bg-blue-50 border-blue-100 text-[#1B52C9] shadow-sm'
-                                                                    : 'bg-white border-transparent text-[#475569] hover:bg-slate-50 hover:border-slate-100 hover:text-[#1e293b]'}`}
+                                                            className={`group px-4 py-1 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
+                                    ${assignment.finalApprover === c.name
+                                                                    ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
+                                                                    : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600'}`}
                                                         >
-                                                            <span>{c}</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <span>{c.name}</span>
+                                                            </div>
 
-                                                            {assignment.finalApprover === c && (
+                                                            {/* Blue dot indicator */}
+                                                            {assignment.finalApprover === c.name && (
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                                                             )}
                                                         </div>
@@ -1046,13 +1133,14 @@ const AssignmentBuilder = () => {
                                 <div className="relative group">
                                     <input
                                         type="date"
-                                        className="w-full bg-white/100 border border-[#2d4a9b] rounded-xl px-4 py-1 h-[40px] text-xs font-semibold text-blue-600 outline-none transition-all 
-            hover:border-[#3d5bbd] focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20
+                                        className="w-full bg-white/100 border border-slate-100 rounded-xl px-4 py-1 h-[40px] text-xs font-semibold text-blue-600 outline-none transition-all 
+            hover:border-[#c7d4f9] focus:border- focus:ring-1 
             [color-scheme:light] cursor-pointer "
                                         onChange={(e) => setAssignment({ ...assignment, date: e.target.value })}
                                         // To ensure the placeholder text logic works if needed
                                         style={{
-                                            color: assignment.date ? '#2563EB' : '#94A3B8'
+                                            color: assignment.date ? '#475569' : '#94A3B8',
+                                            fontWeight: assignment.date ? '600' : '500'
                                         }}
                                     />
 
@@ -1116,15 +1204,15 @@ const AssignmentBuilder = () => {
             </div>
 
             <div className="w-full max-w-5xl mx-auto px-6 mt-12 mb-20">
-                <div className="bg-white rounded-2xl p-3 text-black shadow-2xl flex justify-between items-center border border-slate-700/50">
+                <div className="bg-white rounded-2xl p-3 text-black flex justify-between items-center border border-[#c7d4f9]">
                     <div className="flex items-center gap-4 pl-4">
                         <div><h4 className="text-xs text-blue-700 font-semibold uppercase tracking-widest">Update Data </h4><p className="text-[9px] text-slate-500 font-bold uppercase mt-1">Live Update</p></div>
                     </div>
-                    <div className="flex gap-12 pr-8">
+                    <div className="flex gap-4 pr-4">
                         <button onClick={saveAssignment} className="bg-blue-100 text-blue-600 border border-blue-300 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest  shadow-blue-100 flex items-center gap-2">
                             <Save size={14} /> {isEditMode ? 'Save & Draft' : 'Save & Draft'}
                         </button>
-                        <button onClick={saveAssignment} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 flex items-center gap-2 hover:bg-blue-700">
+                        <button onClick={saveAssignment} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest  flex items-center gap-2 hover:bg-blue-700">
                             <Save size={14} /> {isEditMode ? 'Update Assignment' : 'Send Assignment'}
                         </button>                    </div>
                 </div>

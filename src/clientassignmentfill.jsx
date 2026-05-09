@@ -5,7 +5,7 @@ import {
   FileText, CheckCircle2, Circle, Paperclip,
   Trash2, Plus, Calendar, AlertCircle,
   ChevronRight, Save, Send, XCircle, X, Download, Check, MessageSquare,
-  SquarePen
+  SquarePen, Eye, SendHorizontalIcon
 } from 'lucide-react';
 
 const ClientAssignmentFill = () => {
@@ -18,11 +18,34 @@ const ClientAssignmentFill = () => {
   const [errors, setErrors] = useState({}); // Track validation errors
 
   // State for Clarification Chat
-  const [reviewState, setReviewState] = useState({});
   const [chats, setChats] = useState({});
-  const [tempMsg, setTempMsg] = useState("");
-  const [editingMsgId, setEditingMsgId] = useState(null);
-  const [activeChatId, setActiveChatId] = useState(null);
+  const [chatInputs, setChatInputs] = useState({});
+  const [openChats, setOpenChats] = useState({});
+
+  const handleSendMessage = (qId) => {
+    const text = chatInputs[qId];
+    if (!text || !text.trim()) return;
+
+    const newMessage = {
+      id: Date.now().toString(),
+      text: text.trim(),
+      sender: 'Client',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChats(prev => {
+      const updated = { ...prev, [qId]: [...(prev[qId] || []), newMessage] };
+      const cleanId = assignment?.id?.replace('#', '');
+      localStorage.setItem(`chat_${cleanId}`, JSON.stringify(updated));
+      return updated;
+    });
+
+    setChatInputs(prev => ({ ...prev, [qId]: '' }));
+  };
+
+  const toggleChat = (qId) => {
+    setOpenChats(prev => ({ ...prev, [qId]: !prev[qId] }));
+  };
 
   // --- PROGRESS CALCULATION ---
   const calculateProgress = () => {
@@ -73,17 +96,74 @@ const ClientAssignmentFill = () => {
     const found = allAssignments.find(a => a.id === id || a.id === `#${id}`);
     if (found) {
       setAssignment(found);
-      const initialAnswers = {};
-      found.sections.forEach(sec => {
-        sec.questions.forEach(q => {
-          if (q.answerType === 'TABLE') initialAnswers[q.id] = [{}];
-          else if (q.answerType === 'CHECKBOX') initialAnswers[q.id] = [];
-          else initialAnswers[q.id] = "";
+
+      const storedSubmission = localStorage.getItem(`submission_${found.id}`);
+
+      // ONLY pre-fill answers if the assignment is open for resubmission
+      if (found.status === 'Open for Resubmission' && storedSubmission) {
+        try {
+          const parsed = JSON.parse(storedSubmission);
+          const savedAnswers = parsed.answers || {};
+
+          const prefilledAnswers = {};
+          found.sections.forEach(sec => {
+            sec.questions.forEach(q => {
+              if (savedAnswers[q.id] !== undefined) {
+                prefilledAnswers[q.id] = savedAnswers[q.id];
+              } else {
+                if (q.answerType === 'TABLE') prefilledAnswers[q.id] = [{}];
+                else if (q.answerType === 'CHECKBOX') prefilledAnswers[q.id] = [];
+                else prefilledAnswers[q.id] = "";
+              }
+            });
+          });
+          setAnswers(prefilledAnswers);
+        } catch (e) {
+          console.error("Failed to parse stored submission", e);
+        }
+      } else {
+        // Default empty state for new/pending assignments
+        const initialAnswers = {};
+        found.sections.forEach(sec => {
+          sec.questions.forEach(q => {
+            if (q.answerType === 'TABLE') initialAnswers[q.id] = [{}];
+            else if (q.answerType === 'CHECKBOX') initialAnswers[q.id] = [];
+            else initialAnswers[q.id] = "";
+          });
         });
-      });
-      setAnswers(initialAnswers);
+        setAnswers(initialAnswers);
+      }
+
+      // Load chats
+      const cleanId = found.id.replace('#', '');
+      const chatKey = `chat_${cleanId}`;
+      const storedChats = localStorage.getItem(chatKey);
+      if (storedChats) {
+        setChats(JSON.parse(storedChats));
+      }
     }
   }, [id]);
+
+  // Sync chats across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      const cleanId = assignment?.id?.replace('#', '');
+      if (e.key === `chat_${cleanId}`) {
+        setChats(JSON.parse(e.newValue || '{}'));
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [assignment?.id]);
+
+  const isQuestionDisabled = (q) => {
+    if (assignment?.status === 'Open for Resubmission') {
+      // Use reviewStatuses or reviewState depending on how it's stored in admin
+      const status = assignment?.reviewStatuses?.[q.id] || assignment?.reviewState?.[q.id];
+      return status !== 'REJECTED';
+    }
+    return false;
+  };
 
   // Logic: Intersection Observer for Scroll Highlighting
   useEffect(() => {
@@ -219,12 +299,23 @@ const ClientAssignmentFill = () => {
 
   // Logic: File Upload
   const handleFileUpload = (qId, e) => {
-    const uploadedFiles = Array.from(e.target.files).map(f => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: f.name,
-      size: (f.size / 1024 / 1024).toFixed(2) + " MB"
-    }));
-    setFiles(prev => ({ ...prev, [qId]: [...(prev[qId] || []), ...uploadedFiles] }));
+    const uploadedFiles = Array.from(e.target.files);
+    uploadedFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const fileData = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          size: (file.size / 1024 / 1024).toFixed(2) + " MB",
+          fileUrl: event.target.result // Store Data URL for preview
+        };
+        setFiles(prev => ({
+          ...prev,
+          [qId]: [...(prev[qId] || []), fileData]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const removeFile = (qId, fileId) => {
@@ -282,84 +373,8 @@ const ClientAssignmentFill = () => {
   };
 
 
-  const updateStatus = (qId, status) => {
-    setReviewState(prev => ({ ...prev, [qId]: status }));
-  };
-
-
-
-  const deleteMessageAndReset = (qId) => {
-    // 1. Reset the Review Status (Approved/Rejected/Clarify) to null
-    setReviewStatuses(prev => {
-      const newStatuses = { ...prev };
-      delete newStatuses[qId]; // Removes the status for this specific question
-      return newStatuses;
-    });
-
-    // 2. Clear the feedback message for this question (if you have a separate state)
-    setResponses(prev => ({
-      ...prev,
-      [`${qId}_message`]: "" // Clears the clarification text
-    }));
-
-    // 3. Update LocalStorage so the change is saved
-    const allAssignments = JSON.parse(localStorage.getItem('all_assignments')) || [];
-    const index = allAssignments.findIndex(asg => asg.id.replace('#', '') === id);
-    if (index !== -1) {
-      // Remove status from storage
-      if (allAssignments[index].reviewStatuses) {
-        delete allAssignments[index].reviewStatuses[qId];
-      }
-      localStorage.setItem('all_assignments', JSON.stringify(allAssignments));
-    }
-
-    toast.info("Status reset successfully");
-  };
-
-
-  const handleCancelClarification = (qId) => {
-    // Clear the typing text for this question
-    setTempMsg(prev => ({ ...prev, [qId]: "" }));
-    // Revert status to show the "Need Clarification?" button again
-    setReviewState(prev => {
-      const newState = { ...prev };
-      delete newState[qId];
-      return newState;
-    });
-  };
-
-  const handleSendClarification = (qId) => {
-    const text = tempMsg[qId];
-    if (!text?.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      text: text,
-      sender: 'Admin',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setChats(prev => ({
-      ...prev,
-      [qId]: [...(prev[qId] || []), newMessage]
-    }));
-
-    // Clear input after sending
-    setTempMsg(prev => ({ ...prev, [qId]: "" }));
-  };
-
-
-  const handleEditMessage = (qId, msg) => {
-    setTempMsg(prev => ({ ...prev, [qId]: msg.text }));
-    setEditingMsgId(msg.id);
-    // Remove the message from the list temporarily while editing
-    setChats(prev => ({
-      ...prev,
-      [qId]: prev[qId].filter(m => m.id !== msg.id)
-    }));
-  };
-
-
+  // Logic: Chat Handlers
+  // (Using unified handleSendMessage above)
 
 
   return (
@@ -437,31 +452,31 @@ const ClientAssignmentFill = () => {
                   <div className="px-4 py-4 space-y-4">
                     <div className="flex justify-between items-start">
                       <h3 className="text-sm font-bold text-slate-700">{qIdx + 1}. {q.title} {q.isMandatory && <span className="text-red-500">*</span>}</h3>
-                      <div className="flex items-center gap-3">
-                        {/* SAMPLE FILE DOWNLOAD BUTTON */}
+                      <div className="flex items-center gap-2">
+                        {/* SAMPLE FILE ACTIONS */}
                         {q.attachedFileName && (
-                          <button
-                            onClick={() => {
-                              // Logic: Trigger automatic download
-                              const link = document.createElement('a');
-                              // Point this to your actual file storage location
-                              link.href = `/path-to-your-files/${q.attachedFileName}`;
-                              link.download = q.attachedFileName;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                            className="flex items-center gap-2 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-100 px-3 py-1.5 rounded-lg transition-all group shadow-sm"
-                            title={`Download ${q.attachedFileName}`}
-                          >
-                            <Download size={14} className="text-blue-500 group-hover:text-white transition-colors" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">
-                              Sample File
-                            </span>
-                          </button>
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                // Use Base64 data if available, otherwise fallback to root path
+                                const fileUrl = q.attachedFileData || `/${encodeURIComponent(q.attachedFileName)}`;
+                                link.href = fileUrl;
+                                link.download = q.attachedFileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                              className="flex items-center gap-2 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-100 px-3 py-1.5 rounded-lg transition-all group shadow-sm"
+                              title={`Download ${q.attachedFileName}`}
+                            >
+                              <Download size={14} className="text-blue-500 group-hover:text-white transition-colors" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">
+                                Sample File
+                              </span>
+                            </button>
+                          </div>
                         )}
-
-
                       </div>
                     </div>
 
@@ -483,9 +498,10 @@ const ClientAssignmentFill = () => {
                               <input
                                 type="radio"
                                 name={q.id}
-                                className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                className={`w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 ${isQuestionDisabled(q) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                                 onChange={() => updateAnswer(q, opt)}
                                 checked={answers[q.id] === opt}
+                                disabled={isQuestionDisabled(q)}
                               />
                               <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600">
                                 {opt}
@@ -504,10 +520,11 @@ const ClientAssignmentFill = () => {
                             className={`w-full bg-slate-50 border ${errors[q.id]
                               ? 'border-red-400 ring-2 ring-red-50'
                               : 'border-slate-200'
-                              } rounded-lg px-4 py-2.5 text-xs font-semibold focus:bg-white focus:border-blue-500 outline-none transition-all`}
+                              } rounded-lg px-4 py-2.5 text-xs font-semibold focus:bg-white focus:border-blue-500 outline-none transition-all ${isQuestionDisabled(q) ? 'opacity-60 cursor-not-allowed' : ''}`}
                             value={answers[q.id] || ""}
                             onChange={(e) => updateAnswer(q, e.target.value)}
                             onBlur={(e) => validateField(q, e.target.value)}
+                            disabled={isQuestionDisabled(q)}
                           />
                           {errors[q.id] && (
                             <p className="text-[10px] text-red-500 mt-1 font-bold animate-in fade-in slide-in-from-top-1">
@@ -522,10 +539,11 @@ const ClientAssignmentFill = () => {
                         <textarea
                           rows={4}
                           placeholder="Enter detailed response..."
-                          className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:border-blue-500 outline-none transition-all resize-none shadow-sm"
+                          className={`w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:border-blue-500 outline-none transition-all resize-none shadow-sm ${isQuestionDisabled(q) ? 'opacity-60 cursor-not-allowed bg-slate-50' : ''}`}
                           value={answers[q.id] || ""}
                           onChange={(e) => updateAnswer(q, e.target.value)}
                           onBlur={(e) => validateField(q, e.target.value)}
+                          disabled={isQuestionDisabled(q)}
                         />
                       )}
 
@@ -534,9 +552,10 @@ const ClientAssignmentFill = () => {
                           <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input
                             type="date"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm font-bold text-slate-600 focus:bg-white outline-none"
+                            className={`w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm font-bold text-slate-600 focus:bg-white outline-none ${isQuestionDisabled(q) ? 'opacity-60 cursor-not-allowed' : ''}`}
                             value={answers[q.id] || ""}
                             onChange={(e) => updateAnswer(q, e.target.value)}
+                            disabled={isQuestionDisabled(q)}
                           />
                         </div>
                       )}
@@ -570,10 +589,11 @@ const ClientAssignmentFill = () => {
                                           // Use 'date' type only if config says DATE
                                           type={col.type === 'DATE' ? 'date' : 'text'}
                                           className={`w-full bg-transparent p-2 text-xs font-medium outline-none placeholder:text-slate-300 ${errors[errorKey] ? 'text-red-500' : 'text-slate-700'
-                                            }`}
+                                            } ${isQuestionDisabled(q) ? 'cursor-not-allowed opacity-60' : ''}`}
                                           placeholder={col.type === 'DATE' ? '' : `Enter ${col.name}...`}
                                           value={row[col.name] || ""}
                                           onChange={(e) => updateTableRow(q.id, rIdx, col, e.target.value)}
+                                          disabled={isQuestionDisabled(q)}
                                         />
                                         {/* Small error tooltip for Email validation */}
                                         {errors[errorKey] && (
@@ -587,11 +607,13 @@ const ClientAssignmentFill = () => {
                                   <td className="px-4 py-3 text-center">
                                     <button
                                       onClick={() => {
+                                        if (isQuestionDisabled(q)) return;
                                         const t = [...answers[q.id]];
                                         t.splice(rIdx, 1);
                                         setAnswers(prev => ({ ...prev, [q.id]: t }));
                                       }}
-                                      className="text-red-300 hover:text-red-500 transition-colors"
+                                      className={`text-red-300 transition-colors ${isQuestionDisabled(q) ? 'cursor-not-allowed opacity-50' : 'hover:text-red-500'}`}
+                                      disabled={isQuestionDisabled(q)}
                                     >
                                       <Trash2 size={14} />
                                     </button>
@@ -601,8 +623,9 @@ const ClientAssignmentFill = () => {
                             </tbody>
                           </table>
                           <button
-                            onClick={() => addTableRow(q.id)}
-                            className="w-full p-3 bg-white hover:bg-slate-50 text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border-t border-slate-200"
+                            onClick={() => { if (!isQuestionDisabled(q)) addTableRow(q.id); }}
+                            className={`w-full p-3 bg-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border-t border-slate-200 ${isQuestionDisabled(q) ? 'text-slate-400 cursor-not-allowed bg-slate-50' : 'text-blue-600 hover:bg-slate-50'}`}
+                            disabled={isQuestionDisabled(q)}
                           >
                             <Plus size={14} /> Add New Row
                           </button>
@@ -615,12 +638,14 @@ const ClientAssignmentFill = () => {
                             <label key={opt.id} className="flex items-center gap-4 p-2 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all">
                               <input
                                 type="checkbox"
-                                className="w-3.5 h-3.5 rounded-md border-slate-300 text-blue-600"
+                                className={`w-3.5 h-3.5 rounded-md border-slate-300 text-blue-600 ${isQuestionDisabled(q) ? 'cursor-not-allowed opacity-60' : ''}`}
                                 onChange={(e) => {
                                   const current = answers[q.id] || [];
                                   if (e.target.checked) updateAnswer(q, [...current, opt.text]);
                                   else updateAnswer(q, current.filter(i => i !== opt.text));
                                 }}
+                                disabled={isQuestionDisabled(q)}
+                                checked={(answers[q.id] || []).includes(opt.text)}
                               />
                               <span className="text-xs font-bold text-slate-600">{opt.text}</span>
                             </label>
@@ -638,7 +663,7 @@ const ClientAssignmentFill = () => {
                                 Upload Documentation
                               </p>
                             </div>
-                            <input type="file" className="hidden" multiple onChange={(e) => handleFileUpload(q.id, e)} />
+                            <input type="file" className="hidden" multiple onChange={(e) => handleFileUpload(q.id, e)} disabled={isQuestionDisabled(q)} />
                           </label>
                           <div className="space-y-2">
                             {(files[q.id] || []).map(file => (
@@ -647,7 +672,7 @@ const ClientAssignmentFill = () => {
                                   <FileText size={16} className="text-blue-500" />
                                   <span className="text-[11px] font-bold text-slate-700">{file.name} ({file.size})</span>
                                 </div>
-                                <button onClick={() => removeFile(q.id, file.id)} className="text-red-500"><Trash2 size={16} /></button>
+                                <button onClick={() => { if (!isQuestionDisabled(q)) removeFile(q.id, file.id); }} className={`text-red-500 ${isQuestionDisabled(q) ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isQuestionDisabled(q)}><Trash2 size={16} /></button>
                               </div>
                             ))}
                           </div>
@@ -656,11 +681,11 @@ const ClientAssignmentFill = () => {
                     </div>
 
                     {/* CLARIFICATION SECTION */}
-                    <div className="mt-4 pt-4 border-t border-slate-50">
-                      {/* 1. BUTTON MODE: Shows "Need Clarification?" */}
-                      {reviewState[q.id] !== 'CLARIFY' && (
+                    <div className="mt-1 pt-1 border-t border-slate-50">
+                      {/* 1. BUTTON MODE: Shows "Need Help?" */}
+                      {!openChats[q.id] && (
                         <button
-                          onClick={() => updateStatus(q.id, 'CLARIFY')}
+                          onClick={() => toggleChat(q.id)}
                           className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors"
                         >
                           <MessageSquare size={14} /> Need Help?
@@ -668,84 +693,58 @@ const ClientAssignmentFill = () => {
                       )}
 
                       {/* 2. CHAT & INPUT MODE */}
-                      {reviewState[q.id] === 'CLARIFY' && (
-                        <div className="bg-orange-50/40 rounded-2xl border border-orange-100 p-4 space-y-4 animate-in fade-in zoom-in-95">
+                      {openChats[q.id] && (
+                        <div className="mt-1 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm animate-in fade-in zoom-in-95">
+                          <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 flex justify-between items-center">
+                            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Help Chat</span>
+                            <button onClick={() => toggleChat(q.id)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+                          </div>
 
-                          {/* Sent Messages List */}
-                          <div className="space-y-3">
-                            {(chats[q.id] || []).map((msg) => (
-                              <div key={msg.id} className="flex items-start gap-3 group">
-                                <div className="w-7 h-7 rounded-full bg-white border border-orange-200 text-orange-600 flex items-center justify-center text-[9px] font-black shadow-sm">
-                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${q.id.color}`}>{q.id.initials}</div>
-
+                          {/* Messages Area */}
+                          <div className="p-3 h-32 overflow-y-auto space-y-3 bg-slate-50/50">
+                            {(chats[q.id] || []).map((msg, idx) => (
+                              <div key={idx} className={`flex items-start gap-2 ${msg.sender === 'Client' ? 'flex-row-reverse' : ''}`}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${msg.sender === 'Client' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+                                  {msg.sender.charAt(0)}
                                 </div>
-                                <div className="flex-1 bg-white border border-orange-100 rounded-2xl p-3 shadow-sm relative">
-                                  <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[10px] font-black text-slate-800">Admin</span>
-                                    <div className="flex items-center gap-1">
-                                      {/* EDIT BUTTON (SquarePen) */}
-                                      <button
-                                        onClick={() => handleEditMessage(q.id, msg)}
-                                        className="p-1 text-blue-600"
-                                      >
-                                        <SquarePen size={12} />
-                                      </button>
-                                      {/* DELETE BUTTON (Trash) - Closes box and shows "Need Help" */}
-                                      <button
-                                        onClick={() => deleteMessageAndReset(q.id, msg.id)}
-                                        className="p-1 text-red-500 "
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                    </div>
+                                <div className={`flex flex-col ${msg.sender === 'Client' ? 'items-end' : 'items-start'}`}>
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-[10px] font-black text-slate-800">{msg.sender}</span>
+                                    <span className="text-[9px] font-medium text-slate-400">{msg.time}</span>
                                   </div>
-                                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{msg.text}</p>
-                                  <span className="text-[8px] font-medium text-slate-300 block mt-1">{msg.time}</span>
+                                  <div className={`text-[11px] p-1 rounded-lg border inline-block max-w-[250px] ${msg.sender === 'Client' ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white border-slate-200 text-slate-700'}`}>
+                                    {msg.text}
+                                  </div>
                                 </div>
                               </div>
                             ))}
+                            {(!chats[q.id] || chats[q.id].length === 0) && (
+                              <div className="text-center text-[11px] text-slate-400 italic mt-8">Need help? Send a message to the admin.</div>
+                            )}
                           </div>
 
-                          {/* Input Area: Shows if typing new message OR editing */}
-                          {(!chats[q.id] || chats[q.id].length === 0 || editingMsgId) && (
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center px-1">
-                                <span className="text-[9px] font-black text-orange-700 uppercase tracking-widest">
-                                  {editingMsgId ? "Editing Message" : "Instructions"}
-                                </span>
-                                {/* CLOSE CROSS ICON: Reverts everything to "Need Help?" */}
-                                <button
-                                  onClick={() => handleCancelClarification(q.id)}
-                                  className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-
-                              <div className="relative">
-                                <textarea
-                                  value={tempMsg[q.id] || ""}
-                                  onChange={(e) => setTempMsg(prev => ({ ...prev, [q.id]: e.target.value }))}
-                                  placeholder="Type your clarification request..."
-                                  className="w-full bg-white border border-orange-200 rounded-xl p-3 pr-12 text-xs font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all resize-none min-h-[80px]"
-                                />
-                                {/* SEND ICON */}
-                                <button
-                                  onClick={() => {
-                                    handleSendClarification(q.id);
-                                    setEditingMsgId(null);
-                                  }}
-                                  disabled={!tempMsg[q.id]?.trim()}
-                                  className={`absolute right-3 bottom-3 p-2 rounded-lg transition-all ${tempMsg[q.id]?.trim()
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                                    : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                                    }`}
-                                >
-                                  {editingMsgId ? <Check size={16} /> : <Send size={16} />}
-                                </button>
-                              </div>
+                          {/* Input Area */}
+                          <div className="p-2 bg-white border-t border-slate-200">
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                placeholder="Type a message..."
+                                className="w-full bg-slate-50 border border-slate-200 rounded-full pl-4 pr-10 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                value={chatInputs[q.id] || ''}
+                                onChange={(e) => setChatInputs(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSendMessage(q.id);
+                                }}
+                              />
+                              <button
+                                onClick={() => handleSendMessage(q.id)}
+                                className={`absolute right-1 p-1.5 rounded-full transition-all ${!chatInputs[q.id] || !chatInputs[q.id].trim() ? 'text-slate-300' : 'bg-blue-600 text-white shadow-md shadow-blue-100 hover:bg-blue-700'}`}
+                                disabled={!chatInputs[q.id] || !chatInputs[q.id].trim()}
+                              >
+                                <SendHorizontalIcon size={16} />
+                              </button>
                             </div>
-                          )}
+                          </div>
                         </div>
                       )}
                     </div>

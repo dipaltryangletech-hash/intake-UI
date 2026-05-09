@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, Github, Chrome, ShieldCheck } from 'lucide-react';
-import { useAuth } from './AuthContext';
+import { useAuth } from './Context/Auth/AuthContext';
 import { toast } from 'react-toastify';
 
 const LoginPage = () => {
@@ -15,26 +15,23 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const result = login(formData.email, formData.password);
-    
-    setTimeout(() => {
+
+    const result = await login(formData.email, formData.password);
+
+    if (result.success) {
+      toast.success(`Welcome back, ${result.user.name}!`);
       setIsLoading(false);
-      if (result.success) {
-        toast.success(`Welcome back, ${result.user.name}!`);
-        // Navigate to intended page or role default
-        const from = location.state?.from?.pathname || (result.user.role === 'admin' ? '/clients' : '/clientportal');
-        navigate(from, { replace: true });
-      } else {
-        toast.error(result.message);
-      }
-    }, 1000);
+      navigate('/assignments', { replace: true });
+    } else {
+      setIsLoading(false);
+      toast.error(result.message);
+    }
   };
 
   return (
     /* 1. Use flex items-center justify-center to center the content */
     <div className="min-h-screen w-full bg-[#F8FAFC] font-poppins flex items-center justify-center p-4 antialiased">
-      
+
       {/* 2. Added a subtle background decoration to make the center card pop */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-50/50 blur-3xl"></div>
@@ -42,13 +39,18 @@ const LoginPage = () => {
       </div>
 
       {/* 3. The Card Container */}
-      <div className="relative w-full max-w-[480px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-2 md:p-4">
-        
+      <div className="relative w-full max-w-[440px] bg-white rounded-2xl shadow-xl border border-slate-100 p-6 md:px-6 py-6">
+
         {/* Logo / Icon Header */}
-        <div className="flex flex-col  items-center mb-10">
-        
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Welcome Back</h2>
-          <p className="text-slate-400 mt-2 text-sm font-medium">Enter your credentials to continue</p>
+        <div className="flex flex-col items-center mb-8 text-center">
+          <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center mb-5 border border-blue-100">
+            <ShieldCheck size={20} />
+          </div>
+          <h2 className="text-2xl font-bold text-blue-700 font-bold tracking-wideat">Welcome Back
+            in Intake Platform
+
+          </h2>
+          <p className="text-slate-500 mt-2 text-sm font-medium">Enter your credentials to access your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -63,21 +65,18 @@ const LoginPage = () => {
                 type="email"
                 required
                 placeholder="name@company.com"
-                className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.25rem] pl-12 pr-4 py-4 text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
           </div>
 
           {/* Password Input */}
           <div>
-            <div className="flex justify-between items-end mb-2 ml-1">
+            <div className="mb-2 ml-1">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 Password
               </label>
-              <a href="#" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors">
-                Forgot?
-              </a>
             </div>
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
@@ -85,8 +84,8 @@ const LoginPage = () => {
                 type={showPassword ? "text" : "password"}
                 required
                 placeholder="••••••••"
-                className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.25rem] pl-12 pr-12 py-4 text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-12 pr-12 py-3.5 text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
               <button
                 type="button"
@@ -98,52 +97,42 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 py-1">
-            <input type="checkbox" id="remember" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-            <label htmlFor="remember" className="text-xs font-bold text-slate-500 cursor-pointer select-none">Remember for 30 days</label>
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="remember" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+              <label htmlFor="remember" className="text-xs font-bold text-slate-500 cursor-pointer select-none">Remember me</label>
+            </div>
+            <Link to="/forgot-password" size="sm" className="text-[13px] font-bold text-blue-600 hover:text-blue-700 transition-colors">
+              Forgot password?
+            </Link>
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-[1.25rem] flex items-center justify-center gap-3 transition-all shadow-xl shadow-blue-200 group disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-3 transition-all group disabled:cursor-not-allowed mt-4"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
-                <span className="tracking-tight">Sign In to Dashboard</span>
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                <span className="tracking-tight font-medium p-">Sign In</span>
+                {/* <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /> */}
               </>
             )}
           </button>
         </form>
 
-        {/* Social Login Divider */}
-        <div className="relative my-8 text-center">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-100"></div>
-          </div>
-          <span className="relative bg-white px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            Or continue with
-          </span>
+        <div className="mt-4 text-center border-t border-slate-100 pt-2">
+          <p className="text-sm font-medium text-slate-500">
+            Don't have an account?{' '}
+            <a href="/signup" className="text-blue-600 font-bold hover:text-blue-700 hover:underline transition-colors">
+              Sign up here
+            </a>
+          </p>
         </div>
 
-        {/* Social Buttons */}
-        <div className="grid grid-cols-2 gap-4">
-          <button className="flex items-center justify-center gap-2 py-3.5 px-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm">
-            <Chrome size={18} className="text-red-500" /> Google
-          </button>
-          <button className="flex items-center justify-center gap-2 py-3.5 px-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm">
-            <Github size={18} /> Github
-          </button>
-        </div>
-
-        {/* <p className="text-center mt-8 text-sm text-slate-400 font-medium">
-          New to the platform? {' '}
-          <a href="#" className="text-blue-600 font-bold hover:underline underline-offset-4">Request Access</a>
-        </p> */}
       </div>
     </div>
   );

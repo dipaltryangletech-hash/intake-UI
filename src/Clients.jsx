@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './header';
 import Pagination from './pagination';
 import { useNavigate } from "react-router-dom";
-import { EllipsisVertical, Eye, SquarePen, MessageCircle, Trash, Search, ChevronDown, Check } from 'lucide-react';
+import { EllipsisVertical, Eye, SquarePen, MessageCircle, Trash, Search, ChevronDown, Check, ArrowUpDown } from 'lucide-react';
 import ClientPopup from './clientpopup';
+import { useAuth } from "./Context/Auth/AuthContext";
 
 const STATUS_OPTIONS = ["Active", "Invited", "Inactive", "Archived"];
 
@@ -16,6 +17,8 @@ const Clients = () => {
 
   // Initialize Navigate
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canManageClients = user?.role === 'admin' || user?.rights?.includes("Client Creation");
 
 
   const [selectedStatuses, setSelectedStatuses] = useState([]);
@@ -85,6 +88,19 @@ const Clients = () => {
     }
   };
 
+  const renderSortHeader = (label, className = "") => (
+    <th
+      className={`px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase ${className}`}
+    >
+      <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600 transition-colors">
+        {label}
+        <span className="text-slate-300">
+          <ArrowUpDown size={12} />
+        </span>
+      </div>
+    </th>
+  );
+
   return (
 
     <div className="flex bg-background text-on-background font-poppins">
@@ -97,7 +113,9 @@ const Clients = () => {
               <p className="text-sm text-slate-500 mt-0.5">Manage and monitor client access and status.</p>
             </div>
             <div className="flex justify-end">
-              <ClientPopup isOpen={isOpen} setIsOpen={setIsOpen} editData={editData} client={client} setClient={setClient} handleCreate={handleCreate} />
+              {canManageClients && (
+                <ClientPopup isOpen={isOpen} setIsOpen={setIsOpen} editData={editData} client={client} setClient={setClient} handleCreate={handleCreate} />
+              )}
             </div>
           </div>
 
@@ -156,25 +174,19 @@ const Clients = () => {
             <div className="">
               <table className="w-full text-left table-fixed">
                 <colgroup>
-                  <col className="w-[10%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[7%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[8%]" />
+                  {['10%', '10%', '10%', '8%', '8%', '9%', '7%', '8%', '8%'].map((width, idx) => (
+                    <col key={idx} style={{ width }} />
+                  ))}
                 </colgroup>
                 <thead className="bg-slate-50 border-b border-slate-200 overflow-hidden">
                   <tr>
-                    <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase first:rounded-tl-xl  ">Client Name</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Company Name</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Email</th>
+                    {renderSortHeader("Client Name", "px-6 first:rounded-tl-xl")}
+                    {renderSortHeader("Company Name")}
+                    {renderSortHeader("Email")}
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Phone</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Status</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Last Login</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Invite Sent</th>
+                    {renderSortHeader("Status")}
+                    {renderSortHeader("Last Login")}
+                    {renderSortHeader("Invite Sent")}
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Linked Clients</th>
                     <th className="px-2 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase flex items-center justify-center border-slate-200  last:rounded-tr-xl">Actions</th>
                   </tr>
@@ -188,7 +200,7 @@ const Clients = () => {
                       onClick={() => navigate('/client-details', { state: { id: item.id } })}
                       className="hover:bg-slate-50 transition-colors cursor-pointer group/row"
                     >
-                      <td className="px-6 py-1"><div className="flex items-center gap-2 truncate"><div className={`size-6 shrink-0 rounded-full flex items-center justify-center text-[12px] font-bold ${item.color}`}>{item.initials || item.name.substring(0, 2).toUpperCase()}</div><span className="text-[12px] font-semibold text-slate-900 truncate">{item.name}</span></div></td>
+                      <td className="px-6 py-1"><div className="flex items-center gap-2 truncate"><div className={`size-6 shrink-0 rounded-full flex items-center justify-center text-[12px] font-bold ${item.color}`}>{item.initials || item.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}</div><span className="text-[12px] font-semibold text-slate-900 truncate">{item.name}</span></div></td>
                       <td className="px-2 py-2 text-[12px] text-slate-600 truncate">{item.company}</td>
                       <td className="px-2 py-2 text-[12px] text-slate-600 truncate">{item.email}</td>
                       <td className="px-2 py-2 text-[12px] text-slate-600 truncate">{item.phone}</td>
@@ -196,13 +208,13 @@ const Clients = () => {
                       <td className="px-2 py-2 text-[12px] text-slate-500">{item.lastLogin || <span className="italic text-slate-400">—</span>}</td>
                       <td className="px-2 py-2 text-[12px] text-slate-500">{item.inviteDate}</td>
                       <td className="px-3 py-2">
-                        <div className="group/avatars relative flex items-center -space-x-2 cursor-default">
+                        <div className="group/avatars relative flex items-center -space-x-1 cursor-default">
                           {item.linkedClients?.slice().sort((a, b) => a.name.localeCompare(b.name)).slice(0, 3).map((lc, index) => {
                             const colors = ['bg-indigo-100 text-indigo-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700'];
                             const colorClass = colors[index % colors.length];
                             return (
-                              <div key={lc.id} className={`size-7 rounded-full ${colorClass} flex items-center justify-center text-[11px] font-bold border-2 border-white shadow-sm ring-1 ring-slate-100/50 relative`} style={{ zIndex: 10 - index }}>
-                                {lc.name.charAt(0).toUpperCase()}
+                              <div key={lc.id} className={`size-7 rounded-full ${colorClass} flex items-center justify-center text-[11px] font-bold border border-white shadow-sm ring-1 ring-slate-100/50 relative`} style={{ zIndex: 10 - index }}>
+                                {lc.initials || lc.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                               </div>
                             );
                           })}
@@ -217,7 +229,7 @@ const Clients = () => {
 
                           {/* Custom Tooltip */}
                           {item.linkedClients?.length > 0 && (
-                            <div className="absolute top-full right-0 mt-2 w-max px-3 py-2 bg-slate-50 text-slate-400 text-[11px] font-medium rounded-lg shadow-xl border border-slate-100 opacity-0 pointer-events-none group-hover/avatars:opacity-100 transition-opacity z-50">
+                            <div className="absolute top-full right-0 mt-2 w-max px-3 py-2 bg-[#1F2937] text-white/90 text-[11px] font-medium rounded-lg shadow-xl border border-[#374151] opacity-0 pointer-events-none group-hover/avatars:opacity-100 transition-opacity z-50">
                               <div className="flex flex-col gap-1 text-left">
                                 {item.linkedClients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(lc => (
                                   <span key={lc.id}>{lc.name}</span>
@@ -237,7 +249,7 @@ const Clients = () => {
                               e.stopPropagation();
                               navigate('/client-details', { state: { id: item.id } });
                             }}
-                            className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="View"
                           >
                             <Eye size={16} />
@@ -249,35 +261,39 @@ const Clients = () => {
                               e.stopPropagation();
                               navigate('/chatbot', { state: { clientId: item.id, name: item.name } });
                             }}
-                            className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Message"
                           >
                             <MessageCircle size={16} />
                           </button>
 
                           {/* Edit Icon */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(item);
-                            }}
-                            className="p-1 text-slate-500 text-center hover:text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <SquarePen size={16} />
-                          </button>
+                          {canManageClients && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(item);
+                              }}
+                              className="p-1 text-center text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <SquarePen size={16} />
+                            </button>
+                          )}
 
                           {/* Delete Icon */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(item.id);
-                            }}
-                            className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash size={16} />
-                          </button>
+                          {canManageClients && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item.id);
+                              }}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

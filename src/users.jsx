@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Pagination from './pagination';
 import UserPopup from "./userpopup";
 import UserDetails from "./userdetails";
+import { useAuth } from "./Context/Auth/AuthContext";
 import { Search, UserPlus, ChevronDown, Check, MoreVertical, Eye, SquarePen, Trash } from 'lucide-react';
 
 const USER_RIGHTS_OPTIONS = [
@@ -17,6 +18,9 @@ const Users = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
+  const canManageUsers = isAdmin || currentUser?.rights?.includes("User Creation");
   const totalPages = 3;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,12 +125,14 @@ const Users = () => {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Users</h1>
             <p className="text-slate-500 text-sm mt-1">Manage and monitor internal user access and roles.</p>
           </div>
-          <button onClick={handleCreate} className="bg-[#1e56d3] hover:bg-blue-700 text-white px-3 py-2 text-sm rounded-lg font-medium flex items-center gap-2 shadow-md transition-all active:scale-95">
-            <UserPlus size={18} /> Create User
-          </button>
+          {canManageUsers && (
+            <button onClick={handleCreate} className="bg-[#1e56d3] hover:bg-blue-700 text-white px-3 py-2 text-sm rounded-lg font-medium flex items-center gap-2 shadow-md transition-all active:scale-95">
+              <UserPlus size={18} /> Create User
+            </button>
+          )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-2 mb-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-3">
             <div className="relative" ref={filterRef}>
               <button
@@ -192,7 +198,8 @@ const Users = () => {
                 <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Phone</th>
                 <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Status</th>
                 <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Last Login</th>
-                <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest items-center uppercase">Actions</th>
+                <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Assigned Clients</th>
+                <th className="px-6 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="text-[12px] divide-y divide-slate-200">
@@ -208,40 +215,82 @@ const Users = () => {
                     <td className="px-6 py-1 text-slate-500 font-medium border-b border-slate-200">{user.email}</td>
                     <td className="px-6 py-1 text-slate-500 font-medium border-b border-slate-200">{user.phone}</td>
                     <td className="px-6 py-1 border-b border-slate-200">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${user.status === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-100' : user.status === 'Inactive' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-amber-100 text-amber-700 border-amber-100'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${user.status === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-500' : user.status === 'Inactive' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-amber-100 text-amber-700 border-amber-100'}`}>
                         <span className={`w-1 h-1 rounded-full ${user.status === 'Active' ? 'bg-blue-600' : user.status === 'Inactive' ? 'bg-slate-500' : 'bg-amber-600'}`}></span>
                         {user.status}
                       </span>
                     </td>
                     <td className="px-6 py-1 text-slate-500 border-b border-slate-200">{user.lastLogin}</td>
+                    <td className="px-6 py-1 border-b border-slate-200">
+                      <div className="flex items-center group/avatars relative cursor-default">
+                        <div className="flex -space-x-2">
+                          {user.linkedClients?.slice().sort((a, b) => a.name.localeCompare(b.name)).slice(0, 3).map((client, i) => {
+                            const colors = [
+                              'bg-blue-50 text-blue-600 border-white/50',
+                              'bg-emerald-50 text-emerald-600 border-emerald-100',
+                              'bg-amber-50 text-amber-700 border-amber-100',
+                              'bg-indigo-50 text-indigo-600 border-indigo-100'
+                            ];
+                            return (
+                              <div key={client.id} className={`size-7 rounded-full flex items-center justify-center text-[11px] font-bold border-2 shadow-sm relative ${colors[i % colors.length]}`} style={{ zIndex: 10 - i }}>
+                                {client.initials || client.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                              </div>
+                            );
+                          })}
+                          {user.linkedClients?.length > 3 && (
+                            <div className="size-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center text-[11px] font-bold border-2 border-white shadow-sm relative" style={{ zIndex: 5 }}>
+                              +{user.linkedClients.length - 3}
+                            </div>
+                          )}
+                          {(!user.linkedClients || user.linkedClients.length === 0) && (
+                            <span className="text-slate-300 italic">—</span>
+                          )}
+                        </div>
+
+                        {/* Tooltip on hover */}
+                        {user.linkedClients?.length > 0 && (
+                          <div className="absolute top-full left-4 mt-1 w-max min-w-[140px] px-3 py-2 bg-[#1F2937] text-white/90 text-[11px] font-medium rounded-lg shadow-2xl border border-[#374151] opacity-0 invisible group-hover/avatars:opacity-100 group-hover/avatars:visible transition-all duration-200 z-[100] translate-y-2 group-hover/avatars:translate-y-0">
+                            <div className="flex flex-col gap-2">
+                              {user.linkedClients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(lc => (
+                                <span key={lc.id} className="whitespace-nowrap hover:text-white/90 transition-colors">{lc.name}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 text-left relative border-b border-slate-200" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         {/* View Icon */}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleView(user); }}
-                          className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View"
                         >
-                          <Eye size={16} />
+                          <Eye size={18} />
                         </button>
 
                         {/* Edit Icon */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEdit(user); }}
-                          className="p-1 text-slate-500 text-center hover:text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <SquarePen size={16} />
-                        </button>
+                        {canManageUsers && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEdit(user); }}
+                            className="p-1.5 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <SquarePen size={18} />
+                          </button>
+                        )}
 
                         {/* Delete Icon */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
-                          className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash size={16} />
-                        </button>
+                        {canManageUsers && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
 

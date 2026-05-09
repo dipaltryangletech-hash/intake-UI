@@ -279,7 +279,7 @@ const Documents = () => {
                             const isExpanded = isSearching || group.isOpen;
                             return (
                                 <div key={group.id} className="group-container">
-                                    <div onClick={() => setGroups(groups.map(g => g.id === group.id ? { ...g, isOpen: !g.isOpen } : g))} className="grid grid-cols-12 gap-4 py-1 px-2 bg-blue-50/20  items-center transition-colors">
+                                    <div onClick={() => setGroups(groups.map(g => g.id === group.id ? { ...g, isOpen: !g.isOpen } : g))} className="grid grid-cols-12 gap-4 py-1 px-2 hover:bg-slate-50 items-center transition-colors">
                                         <div className="col-span-6 flex items-center gap-1">
                                             <button
                                                 className=""
@@ -287,19 +287,19 @@ const Documents = () => {
                                             >
                                                 {isExpanded ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
                                             </button>
-                                            <span className=" font-bold text-slate-800 text-sm">{group.name}</span>
+                                            <span className=" font-semibold text-slate-800 text-[12px]">{group.name}</span>
                                         </div>
                                         <div className="col-span-6 flex justify-end gap-2 pr-3">
                                             <button
                                                 onClick={() => handleEditGroup(group)}
-                                                className="p-1.5 text-blue-600  rounded transition"
+                                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg "
                                                 title="Edit Group"
                                             >
                                                 <SquarePen size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteGroup(group.id)}
-                                                className="p-1.5 text-red-600 rounded transition"
+                                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg "
                                                 title="Delete Group"
                                             >
                                                 <Trash2 size={16} />
@@ -310,7 +310,7 @@ const Documents = () => {
                                     {isExpanded && (
                                         <div className="bg-slate-50 ">
                                             {group.subgroups.slice().sort((a, b) => a.name.localeCompare(b.name)).map(sub => (
-                                                <div key={sub.id} className="grid grid-cols-12 gap-4 py-1 pl-10 border-t border-slate-100 items-center hover:bg-slate-50 transition group">
+                                                <div key={sub.id} className="grid grid-cols-12 gap-4 py-1 pl-10 border-t border-slate-100 items-center hover:bg-slate-50  transition group">
                                                     {editingMainSubgroupId === sub.id ? (
                                                         <>
                                                             <div className="col-span-10 flex flex-1 gap-3 items-center">
@@ -345,7 +345,7 @@ const Documents = () => {
                                                                 className="col-span-10 flex items-center gap-3 cursor-text"
                                                                 onDoubleClick={() => handleStartEditMainSubgroup(sub)}
                                                             >
-                                                                <span className="ml-4 text-sm font-medium text-slate-600 w-1/2 break-words">{sub.name}</span>
+                                                                <span className="ml-4 text-[12px] font-medium text-slate-600 w-1/2 break-words">{sub.name}</span>
                                                                 {sub.explanation && (
                                                                     <span className="text-xs text-slate-500 italic py-1 w-1/2 break-words">Explanation : {sub.explanation}</span>
                                                                 )}
@@ -353,14 +353,14 @@ const Documents = () => {
                                                             <div className="col-span-2 flex justify-end gap-2 pr-5 ">
                                                                 <button
                                                                     onClick={() => handleStartEditMainSubgroup(sub)}
-                                                                    className="p-1.5 text-blue-600 rounded transition"
+                                                                    className="p-1.5  text-blue-600 hover:bg-blue-50 rounded-lg "
                                                                     title="Edit Subgroup"
                                                                 >
                                                                     <SquarePen size={16} />
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleDeleteMainSubgroup(group.id, sub.id)}
-                                                                    className="p-1.5 text-red-600 rounded transition"
+                                                                    className="p-1.5  text-red-600 hover:bg-red-50 rounded-lg "
                                                                     title="Delete Subgroup"
                                                                 >
                                                                     <Trash2 size={16} />
@@ -381,13 +381,13 @@ const Documents = () => {
             {/* 3. UPDATED ADD GROUP MODAL */}
             {activeModal === 'group' && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 overflow-hidden">
+                    <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl border border-slate-200 overflow-hidden">
 
                         {/* Header */}
                         <div className=" bg-slate-50 flex justify-between items-center px-4 py-4 border-b border-slate-200">
                             <div>
-                                <h2 className="text-xl font-bold text-slate-900">{editingGroupId ? "Edit Group" : "Create New Group"}</h2>
-                                <p className="text-xs text-slate-500 mt-1">Manage internal group and subgroup access.</p>
+                                <h2 className="text-xl font-semibold text-slate-900">{editingGroupId ? "Edit Group" : "Create New Group"}</h2>
+                                <p className="text-sm text-slate-500 mt-1">Manage internal group and subgroup access.</p>
                             </div>
                             <button onClick={closeModals} className="p-2 -mt-3 hover:text-slate-900 rounded-full text-slate-400 transition">
                                 <X size={20} />
@@ -395,7 +395,7 @@ const Documents = () => {
                         </div>
 
                         {/* Body */}
-                        <div className="p-4 space-y-6">
+                        <div className="p-4 space-y-4">
                             {/* Group Name Section */}
                             <div>
 
@@ -507,13 +507,13 @@ const Documents = () => {
 
                         {/* Footer */}
                         <div className="bg-slate-50 px-4 py-4 flex justify-end gap-3 border-t border-slate-100">
-                            <button onClick={closeModals} className="px-6 py-2.5 text-slate-500 font-bold text-sm hover:text-slate-700 rounded-xl transition">
+                            <button onClick={closeModals} className="px-6 py-2.5 text-slate-500 hover:bg-slate-100 rounded-md transition font-medium text-sm hover:text-slate-700 rounded-xl transition">
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSaveGroup}
                                 disabled={!nameInput}
-                                className="px-8 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-100 transition disabled:opacity-50"
+                                className="px-3 py-2 bg-blue-600 text-white font-medium text-sm rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-100 transition disabled:opacity-50"
                             >
                                 {editingGroupId ? "Save Changes" : "Save & Create Group"}
                             </button>

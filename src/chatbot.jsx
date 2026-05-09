@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { toast } from 'react-toastify';
 import {
   Send,
   Bot,
@@ -28,17 +29,24 @@ import {
   CheckCircle,
   XCircle,
   X,
-  CircleAlert,
   ArrowRight,
   Info,
   FileX,
   ReplyAll,
   RotateCcw,
   Paperclip,
-  Image
+  Image,
+  FileUp,
+  SendHorizonalIcon,
+  SendHorizontalIcon
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
+import ExplanationTooltip from "./components/ExplanationTooltip";
+import TasksView from './TasksView';
+import DocumentsView from './DocumentsView';
+import ChatView from './ChatView';
+import DocumentPreviewModal from './DocumentPreviewModal';
 
 const PdfIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -60,6 +68,70 @@ function formatTime() {
   const now = new Date();
   return now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
+
+// --- INDEXED DB STORAGE UTILITY ---
+const dbStorage = {
+  dbName: "IntakeChatDocs",
+  storeName: "docs",
+  db: null,
+
+  async init() {
+    if (this.db) return this.db;
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName);
+        }
+      };
+      request.onsuccess = (e) => {
+        this.db = e.target.result;
+        resolve(this.db);
+      };
+      request.onerror = (e) => reject(e.target.error);
+    });
+  },
+
+  async save(id, data) {
+    const db = await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+      store.put(data, id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = (e) => reject(e.target.error);
+    });
+  },
+
+  async get(id) {
+    const db = await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readonly");
+      const store = tx.objectStore(this.storeName);
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  },
+
+  async delete(id) {
+    const db = await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+      store.delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = (e) => reject(e.target.error);
+    });
+  },
+
+  async clear() {
+    const db = await this.init();
+    const tx = db.transaction(this.storeName, "readwrite");
+    tx.objectStore(this.storeName).clear();
+  }
+};
 
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes';
@@ -127,6 +199,14 @@ function getBotResponse(message) {
   return BOT_RESPONSES.default;
 }
 
+const handleClearStorage = (storageKey) => {
+  if (window.confirm("Are you sure you want to clear the chat history for this context? This will free up storage space but cannot be undone.")) {
+    localStorage.removeItem(storageKey);
+    dbStorage.clear().catch(console.error);
+    window.location.reload();
+  }
+};
+
 
 
 const ChatBot = () => {
@@ -136,6 +216,9 @@ const ChatBot = () => {
   // 1. Extract Client Data & Assignment ID securely
   const clientName = location.state?.name || location.state?.client || "Guest";
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [popupMessages, setPopupMessages] = useState([]);
+  const [tempDocsMap, setTempDocsMap] = useState({}); // { rootDocId: [tempDocs] }
+  const [rootDocId, setRootDocId] = useState(null);
   const assignmentId = location.state?.assignmentId || "general";
   const clientId = location.state?.clientId || "anonymous";
 
@@ -143,6 +226,62 @@ const ChatBot = () => {
   // If we have an assignment, use it. Otherwise, use the clientId to keep client chats separate.
   const contextId = assignmentId !== "general" ? assignmentId : `client_${clientId}`;
   const storageKey = `chatbot_messages_${contextId.replace('#', '')}`;
+
+  // 3. Initialize State from LocalStorage using the UNIQUE Key
+  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+
+  // Sync messages from LocalStorage & Hydrate from IndexedDB
+  useEffect(() => {
+    const loadMessages = async () => {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) {
+        setMessages(INITIAL_MESSAGES);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(saved);
+        // Hydrate documents from IndexedDB
+        const hydrated = await Promise.all(parsed.map(async (msg) => {
+          if (msg.type === "document" && msg.fileUrl === "(IDB_LINK)") {
+            const blob = await dbStorage.get(msg.id);
+            return { ...msg, fileUrl: blob || null };
+          }
+          return msg;
+        }));
+        setMessages(hydrated);
+      } catch (e) {
+        console.error("Failed to load messages:", e);
+        setMessages(INITIAL_MESSAGES);
+      }
+    };
+
+    loadMessages();
+  }, [storageKey]);
+
+  // Sync popupMessages with selectedDoc and manage temporary additions per root document
+  useEffect(() => {
+    if (!selectedDoc) {
+      setPopupMessages([]);
+      setRootDocId(null);
+      return;
+    }
+
+    const realDoc = messages.find(m => m.id === selectedDoc.id);
+    if (realDoc) {
+      // We clicked a real document, set it as the new root
+      setRootDocId(realDoc.id);
+      const extras = tempDocsMap[realDoc.id] || [];
+      setPopupMessages([realDoc, ...extras]);
+    } else {
+      // We are navigating within temporary files or switched selection
+      // Ensure the current selection is reflected in popupMessages if it was just added
+      setPopupMessages(prev => {
+        if (prev.find(m => m.id === selectedDoc.id)) return prev;
+        return [...prev, selectedDoc];
+      });
+    }
+  }, [selectedDoc, messages, tempDocsMap]);
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [modalSearch, setModalSearch] = useState("");
@@ -158,25 +297,6 @@ const ChatBot = () => {
     }
     return [];
   });
-
-  // 3. Initialize State from LocalStorage using the UNIQUE Key
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return INITIAL_MESSAGES; }
-    }
-    return INITIAL_MESSAGES;
-  });
-
-  // Ensure chat updates if user navigates directly from one client chat to another client chat
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try { setMessages(JSON.parse(saved)); } catch (e) { setMessages(INITIAL_MESSAGES); }
-    } else {
-      setMessages(INITIAL_MESSAGES);
-    }
-  }, [storageKey]);
 
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -208,7 +328,13 @@ const ChatBot = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem(tasksStorageKey, JSON.stringify(tasks));
+    try {
+      localStorage.setItem(tasksStorageKey, JSON.stringify(tasks));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn("Tasks storage quota exceeded.");
+      }
+    }
   }, [tasks, tasksStorageKey]);
 
   const [newTaskInput, setNewTaskInput] = useState("");
@@ -239,6 +365,7 @@ const ChatBot = () => {
   };
 
   const startEditTask = (task) => {
+    if (task.completed) return; // Prevent editing completed tasks
     setEditingTaskId(task.id);
     setEditTaskText(task.text);
   };
@@ -254,6 +381,15 @@ const ChatBot = () => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Remove body scrollbar on mount, restore on unmount
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   // 4. Document Preview Blob Management
   const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
@@ -283,13 +419,38 @@ const ChatBot = () => {
   }, [selectedDoc]);
 
   // 5. Save to LocalStorage whenever messages change using the UNIQUE Key
+  // Now with IndexedDB fallback for large files
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(messages));
-    } catch (e) {
-      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-        console.warn("LocalStorage quota exceeded. Some large documents may not be saved for the next session.");
+    const saveMessages = async () => {
+      try {
+        // 1. Prepare messages for LocalStorage (extract heavy blobs to IDB)
+        const strippedMessages = await Promise.all(messages.map(async (msg) => {
+          if (msg.type === "document" && msg.fileUrl && msg.fileUrl.length > 500) {
+            // Save to IDB
+            await dbStorage.save(msg.id, msg.fileUrl);
+            // Return stripped version for LocalStorage
+            return { ...msg, fileUrl: "(IDB_LINK)" };
+          }
+          return msg;
+        }));
+
+        localStorage.setItem(storageKey, JSON.stringify(strippedMessages));
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+          console.warn("LocalStorage quota exceeded.");
+          if (!window._storageToastShown) {
+            toast.error("Storage limit reached! Please clear your history.", {
+              position: "top-center",
+              autoClose: 5000
+            });
+            window._storageToastShown = true;
+          }
+        }
       }
+    };
+
+    if (messages.length > 0) {
+      saveMessages();
     }
   }, [messages, storageKey]);
 
@@ -312,9 +473,20 @@ const ChatBot = () => {
 
   // Documents Tabs State
   const [docTab, setDocTab] = useState("documents");
-  const activeDocs = documentMessages.filter(d => !d.inDepository);
-  const depositoryDocs = documentMessages.filter(d => d.inDepository);
+  const activeDocs = documentMessages.filter(d => !d.inDepository).reverse();
+  const depositoryDocs = documentMessages.filter(d => d.inDepository).reverse();
   const displayDocs = docTab === "documents" ? activeDocs : depositoryDocs;
+
+  // Contextual Filtered Lists
+  const filteredActiveTasks = activeTasks.filter(t =>
+    t.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredCompletedTasks = completedTasks.filter(t =>
+    t.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredDisplayDocs = displayDocs.filter(d =>
+    d.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const [selectedDocIds, setSelectedDocIds] = useState([]);
 
@@ -357,6 +529,14 @@ const ChatBot = () => {
   const handleDeleteDoc = (id) => {
     if (window.confirm("Are you sure you want to delete this document? This cannot be undone.")) {
       setMessages(prev => prev.filter(m => m.id !== id));
+      setPopupMessages(prev => prev.filter(m => m.id !== id));
+      setTempDocsMap(prev => {
+        const newMap = { ...prev };
+        Object.keys(newMap).forEach(key => {
+          newMap[key] = newMap[key].filter(m => m.id !== id);
+        });
+        return newMap;
+      });
     }
   };
 
@@ -469,18 +649,17 @@ const ChatBot = () => {
     }
   };
 
-  // Context-aware File Upload Handler
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    if (selectedDoc || activeRequestId) {
-      // Modal Context or Direct List Context: Immediate Upload or Re-upload
+    if (activeRequestId) {
+      // Handle document request upload (persists to messages)
       files.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const newDoc = {
-            id: activeRequestId || (Date.now() + Math.random()),
+            id: activeRequestId,
             type: "document",
             fileName: file.name,
             fileSize: formatFileSize(file.size),
@@ -492,35 +671,54 @@ const ChatBot = () => {
             docStatus: "pending",
           };
 
-          setMessages(prev => {
-            if (activeRequestId) {
-              const updated = prev.map(m => m.id === activeRequestId ? newDoc : m);
-              if (selectedDoc) {
-                const updatedDoc = updated.find(m => m.id === activeRequestId);
-                if (updatedDoc) setSelectedDoc(updatedDoc);
-              }
-              return updated;
-            } else {
-              const updated = [...prev, newDoc];
-              if (selectedDoc) {
-                setSelectedDoc(newDoc);
-              }
-              return updated;
-            }
-          });
+          setMessages(prev => prev.map(m => m.id === activeRequestId ? newDoc : m));
+          if (selectedDoc && selectedDoc.id === activeRequestId) {
+            setSelectedDoc(newDoc);
+          }
         };
         reader.readAsDataURL(file);
       });
       setActiveRequestId(null);
+    } else if (selectedDoc) {
+      // Handle popup plus icon (temporary for popup only, linked to current root doc)
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const newDoc = {
+            id: Date.now() + Math.random(),
+            type: "document",
+            fileName: file.name,
+            fileSize: formatFileSize(file.size),
+            fileUrl: reader.result,
+            sender: "user",
+            time: formatTime(),
+            fullTimestamp: getFullTimestamp(),
+            status: "sent",
+            docStatus: "pending",
+          };
+
+          if (rootDocId) {
+            setTempDocsMap(prev => ({
+              ...prev,
+              [rootDocId]: [...(prev[rootDocId] || []), newDoc]
+            }));
+          }
+          setSelectedDoc(newDoc);
+        };
+        reader.readAsDataURL(file);
+      });
     } else {
-      // Chat Context: Add to pending
+      // Chat context: add to pending
       setPendingFiles(prev => [...prev, ...files]);
     }
     e.target.value = '';
   };
 
   const filteredMessages = searchQuery
-    ? messages.filter((m) => m.type === "text" && m.text.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? messages.filter((m) =>
+      (m.type === "text" && m.text?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (m.type === "document" && m.fileName?.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
     : messages;
 
 
@@ -665,20 +863,19 @@ const ChatBot = () => {
     }
   };
 
-  const handleSelectAll = () => {
-    const allSubgroups = [];
-    groups.forEach(g => {
-      g.subgroups.forEach(sg => {
-        allSubgroups.push({ id: sg.id, name: sg.name, type: 'subgroup' });
-      });
-    });
-
-    if (selectedItems.length === allSubgroups.length && allSubgroups.length > 0) {
-      setSelectedItems([]);
+  const handleExpandAll = () => {
+    const allExpanded = groups.length > 0 && groups.every(g => expandedGroups[g.id]);
+    if (allExpanded) {
+      setExpandedGroups({});
     } else {
-      setSelectedItems(allSubgroups);
+      const newExpanded = {};
+      groups.forEach(g => {
+        newExpanded[g.id] = true;
+      });
+      setExpandedGroups(newExpanded);
     }
   };
+
 
   const handleAddCustomDoc = () => {
     if (!customDocInput.trim()) return;
@@ -727,15 +924,22 @@ const ChatBot = () => {
   const totalSelectableItemsCount = groups.reduce((acc, g) => acc + g.subgroups.length, 0);
 
   return (
-    <div className="w-full bg-white font-poppins text-slate-900 flex flex-col">
-      <main className="flex-1 flex flex-col w-full">
+    <div className="flex flex-col w-full h-[calc(100vh-48px)] bg-white font-poppins text-slate-900 flex flex-col overflow-hidden ">
+      <main className="flex-1 flex flex-col w-full min-h-0">
 
         {/* Removed wrapper padding, rounded corners, shadows, and max-widths */}
-        <div className="flex-1 bg-white flex flex-col relative ">
+        <div className="flex-1 bg-white flex flex-col relative min-h-0">
 
           {/* Chat Header */}
-          <div className=" sticky top-10 z-50 bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2 flex items-center justify-between shrink-0 z-50">
+          <div className=" sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2 flex items-center justify-between shrink-0 z-50">
             <div className="flex items-center gap-3">
+              {/* <button
+                onClick={() => handleClearStorage(storageKey)}
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                title="Clear Chat History"
+              >
+                <Trash2 size={18} />
+              </button> */}
               <button onClick={() => navigate(-1)} className="flex items-center text-white/90 transition hover:text-white">
                 <ChevronLeft size={20} />
                 <span className="text-sm font-medium ml-1">Back</span>
@@ -770,7 +974,7 @@ const ChatBot = () => {
                   Chat
                 </span>
                 {pendingChatCount > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-[#fdf4c6] text-slate-900 text-[9px] font-semibold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border border-[#1e293b] shadow-sm">
+                  <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-medium px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border border-[#cad4e4] shadow-sm">
                     {pendingChatCount}
                   </span>
                 )}
@@ -782,7 +986,7 @@ const ChatBot = () => {
                   setChatIconOn(false);
                   setDocSidebarOpen(false);
                 }}
-                className={`relative flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors  ${taskIconOn ? 'bg-amber-600 hover:bg-amber-600' : 'hover:bg-white/10'
+                className={`relative flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors  ${taskIconOn ? 'bg-[#1c90bb] hover:bg-[#1c90bb]' : 'hover:bg-white/10'
                   }`}
                 title="Task Action"
               >
@@ -805,7 +1009,7 @@ const ChatBot = () => {
                   Tasks
                 </span>
                 {activeTasks.length > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-[#fdf4c6] text-slate-900 text-[9px] font-semibold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border border-[#1e293b] shadow-sm">
+                  <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-medium px-1 min-w-[19px] h-[18px] flex items-center justify-center rounded-full border border-[#cad4e4] shadow-sm">
                     {activeTasks.length}
                   </span>
                 )}
@@ -818,7 +1022,7 @@ const ChatBot = () => {
                   setChatIconOn(false);
                   setTaskIconOn(false);
                 }}
-                className={`relative flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors ${docSidebarOpen ? 'bg-[#1c90bb] hover:bg-[#1c90bb]' : 'hover:bg-white/10'
+                className={`relative flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors ${docSidebarOpen ? 'bg-amber-600 hover:bg-amber-600' : 'hover:bg-white/10'
                   }`}
               >
                 <FolderPlus size={18} className={docSidebarOpen ? "text-white" : "text-white/80"} />
@@ -826,7 +1030,7 @@ const ChatBot = () => {
                   Documents
                 </span>
                 {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-[#fdf4c6] text-slate-900 text-[9px] font-semibold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border border-[#1e293b] shadow-sm">
+                  <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-medium px-1 min-w-[19px] h-[18px] flex items-center justify-center rounded-full border border-[#cad4e4] shadow-sm">
                     {pendingCount}
                   </span>
                 )}
@@ -836,7 +1040,11 @@ const ChatBot = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-blue-500" size={16} />
                 <input
                   type="text"
-                  placeholder="Search in conversation..."
+                  placeholder={
+                    taskIconOn ? "Search tasks..." :
+                      docSidebarOpen ? "Search documents..." :
+                        "Search in conversation..."
+                  }
                   className="pl-10 pr-4 py-1.5 bg-white/10 border-white/50 rounded-lg text-sm w-full lg:w-64 focus:outline-none focus:ring-1 focus:ring-slate-50  transition-all text-white focus:text-white placeholder:text-white/60 shadow-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -852,788 +1060,77 @@ const ChatBot = () => {
 
             {/* Tasks Overlay */}
             {taskIconOn && (
-              <div className="w-full bg-white flex flex-col animate-fadeIn flex-1">
-                {/* Tabs Header */}
-                <div className="shrink-0 bg-slate-50/50 px-6 pt-2">
-                  <div className="max-w-4xl mx-auto flex items-end border-b border-slate-200">
-                    <button
-                      onClick={() => setTaskTab('active')}
-                      className={`py-3 px-3 font-semibold text-sm transition-colors relative ${taskTab === 'active' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Tasks {activeTasks.length > 0 && `(${activeTasks.length})`}
-                      {taskTab === 'active' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
-                    </button>
-                    <button
-                      onClick={() => setTaskTab('completed')}
-                      className={`py-3 px-3 font-semibold text-sm transition-colors relative ${taskTab === 'completed' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Completed {completedTasks.length > 0 && `(${completedTasks.length})`}
-                      {taskTab === 'completed' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Add Task Input (Sticky) */}
-                {taskTab === 'active' && (
-                  <div className="px-6 pt-2 mt-2 pb-2 bg-white shrink-0 z-10">
-                    <div className="max-w-4xl mx-auto relative">
-                      <input
-                        type="text"
-                        value={newTaskInput}
-                        onChange={(e) => setNewTaskInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                        placeholder="Add a task..."
-                        className="w-full pl-5 pr-14 px-4 py-3 bg-blue-50 border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400"
-                      />
-                      <button
-                        onClick={handleAddTask}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-colors"
-                      >
-                        <Plus size={18} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tasks Content */}
-                <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 scrollbar-hide">
-                  <div className="max-w-4xl mx-auto space-y-2">
-                    {(taskTab === 'active' ? activeTasks : completedTasks).map(task => (
-                      <div key={task.id} className="group flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all animate-fadeIn">
-                        <div className="flex items-center gap-2 flex-1 overflow-hidden">
-                          <button
-                            onClick={() => handleToggleTask(task.id)}
-                            className={`group/tick shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.completed ? 'bg-blue-500 border-blue-500' : 'border-slate-300 hover:border-blue-400'}`}
-                          >
-                            {task.completed ? (
-                              <Check size={14} className="text-white" strokeWidth={3} />
-                            ) : (
-                              <Check size={14} className="text-blue-400 opacity-0 group-hover/tick:opacity-50 transition-opacity" strokeWidth={3} />
-                            )}
-                          </button>
-
-                          {editingTaskId === task.id ? (
-                            <input
-                              type="text"
-                              value={editTaskText}
-                              onChange={(e) => setEditTaskText(e.target.value)}
-                              onBlur={saveEditTask}
-                              onKeyDown={(e) => e.key === 'Enter' && saveEditTask()}
-                              className="flex-1 px-3 py-1.5 bg-blue-50 text-sm font-medium text-slate-800 rounded-lg outline-none border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all w-full"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startEditTask(task)}
-                              className={`flex-1 text-sm font-medium truncate cursor-text py-1 ${task.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}
-                            >
-                              {task.text}
-                            </div>
-                          )}
-                        </div>
-
-                      </div>
-                    ))}
-
-                    {(taskTab === 'active' ? activeTasks : completedTasks).length === 0 && (
-                      <div className="text-center py-12 text-slate-500 text-sm flex flex-col items-center">
-                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300">
-                          <ListTodo size={32} />
-                        </div>
-                        {taskTab === 'active' ? "No active tasks. Add one above!" : "No completed tasks yet."}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <TasksView
+                taskTab={taskTab}
+                setTaskTab={setTaskTab}
+                activeTasks={activeTasks}
+                completedTasks={completedTasks}
+                filteredActiveTasks={filteredActiveTasks}
+                filteredCompletedTasks={filteredCompletedTasks}
+                newTaskInput={newTaskInput}
+                setNewTaskInput={setNewTaskInput}
+                handleAddTask={handleAddTask}
+                handleToggleTask={handleToggleTask}
+                handleDeleteTask={handleDeleteTask}
+                editingTaskId={editingTaskId}
+                editTaskText={editTaskText}
+                setEditTaskText={setEditTaskText}
+                saveEditTask={saveEditTask}
+                startEditTask={startEditTask}
+              />
             )}
 
-            {/* Chat Area - This is the ONLY area that scrolls */}
-            <div
-              className={`flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-hide flex flex-col ${taskIconOn || docSidebarOpen ? 'hidden' : ''}`}
-              style={{
-                backgroundColor: "#f8fafc",
-              }}
-            >
-              <div className="flex items-center justify-center py-2">
-                <div className="bg-blue-100/80 backdrop-blur-sm text-blue-700 text-[10px] font-semibold px-4 py-1 rounded-full shadow-sm">
-                  Today
-                </div>
-              </div>
-
-              {filteredMessages.map((msg) => (
-                <React.Fragment key={msg.id}>
-
-                  {/* --- NOTIFICATION RENDERING (Centered) --- */}
-                  {msg.type === "notification" && (
-                    <div className="flex justify-center w-full my-3 animate-fadeIn">
-                      <div className={`px-4 py-2 rounded-xl text-[11px] font-medium shadow-sm border flex items-center gap-2 max-w-[80%] ${msg.action === 'approved'
-                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                        : msg.action === 'rejected'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : msg.action === 'already_sent' || msg.action === 'uploaded'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : msg.action === 'will_send_later'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                        <Info size={14} className="shrink-0" />
-                        <span>
-                          <span className="font-bold">{msg.docName}</span> is <span className="italic">{msg.action.replace(/_/g, ' ')}</span> by <span className="font-bold">{msg.client}</span> on {msg.fullTimestamp}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* --- REGULAR CHAT RENDERING --- */}
-                  {msg.type !== "notification" && (
-                    <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-fadeIn group/message items-end mb-1`}>
-                      {msg.sender === "bot" && (
-                        <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center mr-2 mt-auto mb-1 shrink-0 border border-blue-200">
-                          <span className="text-blue-600 text-[10px]">A</span>
-                        </div>
-                      )}
-
-                      {msg.sender === "user" && (
-                        <div className="flex items-center mr-2 mb-1">
-                          <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus(); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Reply">
-                            <ReplyAll size={18} className=" transition-transform duration-300" />
-                          </button>
-                        </div>
-                      )}
-
-                      <div className={`relative max-w-[75%] ${msg.type === 'document' ? 'p-0 bg-transparent' : 'px-3.5 py-2.5 rounded-xl shadow-sm text-[13px] leading-relaxed'} ${msg.type === 'text' && msg.sender === "user" ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-br-md" : msg.type === 'text' ? "bg-white text-slate-700 border border-slate-100 rounded-bl-md" : ""}`}>
-
-                        {/* TEXT MESSAGE */}
-                        {msg.type === 'text' && (
-                          <>
-                            {msg.replyTo && (
-                              <div className={`mb-1.5 p-2 rounded-lg border-l-4 text-[11px] opacity-90 cursor-pointer ${msg.sender === 'user' ? 'bg-black/10 border-white/50' : 'bg-green-50 border-green-400'}`}>
-                                <div className={`font-bold mb-0.5 ${msg.sender === 'user' ? 'text-white' : 'text-green-700'}`}>{msg.replyTo.sender === 'user' ? 'You' : 'Assistant'}</div>
-                                <div className="truncate max-w-[200px]">{msg.replyTo.text}</div>
-                              </div>
-                            )}
-                            <div className="whitespace-pre-wrap">{msg.text}</div>
-                            <div className={`flex items-center justify-end gap-1 mt-1 ${msg.sender === "user" ? "text-blue-200" : "text-slate-400"}`}>
-                              <span className="text-[10px]">{msg.time}</span>
-                              {msg.sender === "user" && (
-                                <CheckCheck size={13} className={msg.status === "read" ? "text-blue-200" : msg.status === "delivered" ? "text-blue-300" : "text-blue-400/50"} />
-                              )}
-                            </div>
-                          </>
-                        )}
-
-                        {/* DOCUMENT MESSAGE */}
-                        {msg.type === 'document' && (
-                          <div className={`bg-white border shadow-sm rounded-2xl w-[500px] overflow-hidden ${msg.sender === "user" ? "border-blue-100" : "border-slate-200"
-                            }`}>
-                            {msg.replyTo && (
-                              <div className="m-3 mb-0 p-2 bg-slate-50 rounded-lg border-l-4 border-blue-400 text-[11px] opacity-90">
-                                <div className="font-bold text-slate-700 mb-0.5">{msg.replyTo.sender === 'user' ? 'You' : 'Assistant'}</div>
-                                <div className="truncate text-slate-500">{msg.replyTo.text}</div>
-                              </div>
-                            )}
-                            {/* 1. Header with Timestamp */}
-                            <div
-                              className="flex items-center justify-between px-4 border-b border-slate-100 transition-colors"
-                            >
-                              <div className="text-[10px] text-slate-400 font-medium py-2">
-                                Shared on {msg.fullTimestamp || msg.time}
-                              </div>
-                            </div>
-
-                            <div className="p-3">
-                              {/* 2. File Information Row */}
-                              <div className="flex items-center gap-3 mb-4">
-                                <div
-                                  onClick={() => {
-                                    setSelectedDoc(msg);
-                                    setDocSidebarOpen(true);
-                                  }}
-                                  className="flex items-center gap-3 cursor-pointer group/doc-link"
-                                >
-                                  <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0 group-hover/doc-link:bg-blue-100 transition-all">
-                                    {msg.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? (
-                                      <Image size={20} />
-                                    ) : (
-                                      <FileText size={20} />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 overflow-hidden">
-                                    <p className="text-[15px] font-bold text-slate-800 truncate group-hover/doc-link:text-blue-600 transition-colors" title={msg.fileName}>
-                                      {msg.fileName}
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-0.5">{msg.fileSize}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* 3. Approve / Reject Buttons Section */}
-                              {msg.docStatus === 'pending' ? (
-                                <div className="flex gap-3 mb-1">
-                                  <button
-                                    onClick={() => handleDocAction(msg.id, 'approved')}
-                                    className="py-2 flex-1 flex items-center justify-center gap-2 border-2 bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 rounded-lg transition-all font-semibold text-sm"
-                                  >
-                                    <CheckCircle size={18} /> Approve
-                                  </button>
-                                  <button
-                                    onClick={() => handleDocAction(msg.id, 'rejected')}
-                                    className="py-2 flex-1 flex items-center justify-center gap-2 border-2 bg-red-500 border-red-500 text-white hover:bg-red-600 rounded-lg transition-all font-semibold text-sm"
-                                  >
-                                    <XCircle size={18} /> Reject
-                                  </button>
-                                </div>
-                              ) : (
-                                /* Status Badge after clicking Approve/Reject */
-                                <div className={`w-full py-2 text-center rounded-3xl font-bold text-sm mb-1 border ${msg.docStatus === 'approved'
-                                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200 '
-                                  : 'bg-red-50 text-red-600 border-red-200 '
-                                  }`}>
-                                  {msg.docStatus === 'approved' ? 'Approved' : 'Rejected'}
-                                </div>
-                              )}
-
-                              {/* 4. THE CAPTION MESSAGE (The "check image is blur?" part) */}
-                              {msg.text && (
-                                <div className="mt-2 px-1 py-2 border-t border-slate-100">
-                                  <p className="text-[14px] text-slate-700 leading-relaxed">
-                                    {msg.text}
-                                  </p>
-                                  {/* Internal timestamp for the message part */}
-                                  <div className="flex justify-end mt-1 opacity-60">
-                                    <span className="text-[9px] text-slate-500">{msg.time}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {msg.sender === "bot" && (
-                        <div className="flex items-center ml-2 mb-1">
-                          <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus(); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Reply">
-                            <ReplyAll
-                              size={18}
-                              className="transition-transform duration-300"
-                            />                          </button>
-                        </div>
-                      )}
-
-                      {msg.sender === "user" && msg.type !== "notification" && (
-                        <div className="w-7 h-7 bg-orange-400 rounded-full flex items-center justify-center ml-2 mt-auto mb-1 shrink-0 text-white text-[12px] font-normal">
-                          {/* Uses the first letter of the actual client's name or Guest */}
-                          {clientName.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-
-              {isTyping && (
-                <div className="flex justify-start animate-fadeIn">
-                  <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center mr-2 mt-auto mb-1 shrink-0 border border-blue-200">
-                    <Bot size={14} className="text-blue-600" />
-                  </div>
-                  <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+            {/* Chat Area */}
+            {!taskIconOn && !docSidebarOpen && (
+              <ChatView
+                messages={messages}
+                filteredMessages={filteredMessages}
+                messagesEndRef={messagesEndRef}
+                setSelectedDoc={setSelectedDoc}
+                setDocSidebarOpen={setDocSidebarOpen}
+                handleDocAction={handleDocAction}
+                handleToggleSelection={handleToggleSelection}
+                selectedDocIds={selectedDocIds}
+                isTyping={isTyping}
+                clientName={clientName}
+                replyingTo={replyingTo}
+                setReplyingTo={setReplyingTo}
+                input={input}
+                setInput={setInput}
+                handleSend={handleSend}
+                handleKeyDown={handleKeyDown}
+                pendingFiles={pendingFiles}
+                setPendingFiles={setPendingFiles}
+                fileInputRef={fileInputRef}
+                inputRef={inputRef}
+                QUICK_REPLIES={QUICK_REPLIES}
+                handleQuickReply={handleQuickReply}
+                PdfIcon={PdfIcon}
+              />
+            )}
 
             {/* Document Sidebar Tracker */}
-            {/* Overlay */}
             {docSidebarOpen && (
-              <div className="w-full bg-slate-50 flex flex-col animate-fadeIn flex-1">
-                {/* Header Section (With X button to close) */}
-                {/* <div className="px-6 py-1 border-b border-blue-100 flex items-center justify-between bg-white shadow-sm">
-                  <h3 className="font-bold text-slate-800 flex items-center gap-2 text-md tracking-tight">
-                    <FileText size={20} className="text-blue-600" /> Shared Documents
-                  </h3>
-                  <button
-                    onClick={() => setDocSidebarOpen(false)}
-                    className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition"
-                  >
-                    <X size={24} />
-                  </button>
-                </div> */}
-
-                {/* Tabs Header */}
-                <div className="shrink-0 bg-white px-6 pt-2 border-b border-slate-200">
-                  <div className="max-w-6xl mx-auto flex items-end justify-between">
-                    <div className="flex items-end">
-                      <button
-                        onClick={() => setDocTab('documents')}
-                        className={`py-2 px-2 font-semibold text-sm transition-colors relative ${docTab === 'documents' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        Documents
-                        {docTab === 'documents' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
-                      </button>
-                      <button
-                        onClick={() => setDocTab('depository')}
-                        className={`py-2 px-2 font-semibold text-sm transition-colors relative ${docTab === 'depository' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        Documents Depository
-                        {docTab === 'depository' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
-                      </button>
-                    </div>
-
-                    {/* REQUEST BUTTON */}
-                    <button
-                      onClick={() => setIsRequestModalOpen(true)}
-                      className="mb-2 flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition shadow-sm text-sm font-medium"
-                    >
-                      Request Document
-                    </button>
-
-                    {/* 2. The Split-Pane Modal */}
-                    {isRequestModalOpen && (
-                      <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white w-full max-w-6xl h-[80vh] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-200">
-
-                          {/* Header */}
-                          <div className="flex justify-between items-center px-6 py-3 border-b border-slate-100 bg-slate-50 shrink-0">
-                            <div>
-                              <h2 className="text-xl font-bold text-slate-600">Request Documents</h2>
-                              <p className="text-xs text-slate-500">Select groups and subgroups to request from the client.</p>
-                            </div>
-                            <button
-                              onClick={() => setIsRequestModalOpen(false)}
-                              className="pb-2 hover:text-slate-600 text-slate-400 transition"
-                            >
-                              <X size={22} />
-                            </button>
-                          </div>
-
-                          {/* Main Content Area (Two Partitions) */}
-                          <div className="flex-1 flex overflow-hidden">
-
-                            {/* LEFT SIDE: Search & Tree Selection */}
-                            <div className="w-1/2 border-r border-slate-100 flex flex-col bg-white">
-                              <div className="p-4 pb-2">
-                                <div className="relative mb-4">
-                                  <Search className="absolute left-3 top-3 text-slate-400" size={18} />
-                                  <input
-                                    type="text"
-                                    placeholder="Search for group or subgroup..."
-                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-sm transition-all"
-                                    value={modalSearch}
-                                    onChange={(e) => setModalSearch(e.target.value)}
-                                  />
-                                </div>
-
-                                <button
-                                  onClick={handleSelectAll}
-                                  className="flex items-center gap-2 text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1.5 rounded-lg transition"
-                                >
-                                  {selectedItems.length > 0 && selectedItems.length === totalSelectableItemsCount ? <Check size={18} /> : <Square size={18} />}  Select All Items
-                                </button>
-                              </div>
-
-                              <div className="flex-1 overflow-y-auto px-6 py-2 no-scrollbar">
-                                {filteredGroups.map(group => (
-                                  <div key={group.id} className="mb-1">
-                                    {/* Group Item */}
-                                    <div className="flex items-center gap-2 hover:bg-slate-50 p-2 rounded-xl group transition-colors">
-                                      <button onClick={() => toggleExpand(group.id)} className="text-slate-400">
-                                        {expandedGroups[group.id] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                                      </button>
-                                      <input
-                                        type="checkbox"
-                                        className="w-4 h-4 accent-blue-600 cursor-pointer rounded"
-                                        checked={group.subgroups.length > 0 && group.subgroups.every(sg => isSelected(sg.id))}
-                                        onChange={() => handleToggleSelect({ id: group.id, name: group.name, type: 'group' }, group.subgroups)}
-                                      />
-                                      <span className="text-sm font-semibold text-slate-700">{group.name}</span>
-                                    </div>
-
-                                    {/* Subgroup Items (Conditional Expand) */}
-                                    {expandedGroups[group.id] && (
-                                      <div className="ml-9 mt-1 space-y-1">
-                                        {group.subgroups.slice().sort((a, b) => a.name.localeCompare(b.name)).map(sub => (
-                                          <div key={sub.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors group/sub">
-                                            <div className="flex items-center gap-3">
-                                              <input
-                                                type="checkbox"
-                                                className="w-4 h-4 accent-blue-600 cursor-pointer rounded"
-                                                checked={isSelected(sub.id)}
-                                                onChange={() => handleToggleSelect({ id: sub.id, name: sub.name, type: 'subgroup' })}
-                                              />
-                                              <span className="text-sm text-slate-600">{sub.name}</span>{sub.explanation && (
-                                                <div className="relative flex items-center ">
-                                                  <CircleAlert size={16} className="text-[#8B4513] cursor-pointer peer" />
-                                                  <div className="absolute left-6 top-1/2 -translate-y-1/2 hidden peer-hover:block w-48 bg-amber-50 text-[#8B4513] text-xs p-2 rounded-lg shadow-md z-10 border border-amber-200">
-                                                    {sub.explanation}
-                                                  </div>
-                                                </div>
-                                              )}
-                                            </div>
-
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* RIGHT SIDE: Selected Display */}
-                            <div className="w-1/2 bg-slate-50 flex flex-col">
-                              <div className="py-2 px-3 pb-3 shrink-0 flex justify-between items-center">
-                                <h3 className="font-semibold text-slate-600 text-xs uppercase tracking-widest">
-                                  Selected Items ({selectedItems.length})
-                                </h3>
-                                {selectedItems.length > 0 && (
-                                  <button
-                                    onClick={() => setSelectedItems([])}
-                                    className="text-xs text-red-500 font-bold hover:underline"
-                                  >
-                                    Clear All
-                                  </button>
-                                )}
-                              </div>
-
-                              <div className="flex-1 overflow-y-auto px-6 no-scrollbar space-y-2">
-                                {selectedItems.length === 0 ? (
-                                  <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center px-10">
-                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-                                      <FolderPlus size={24} className="opacity-20" />
-                                    </div>
-                                    <p className="text-sm font-normal text-slate-300">Select documents on the left to include them in your request.</p>
-                                  </div>
-                                ) : (
-                                  selectedItems.slice().sort((a, b) => a.name.localeCompare(b.name)).map((item) => (
-                                    <div
-                                      key={item.id}
-                                      className="flex items-center justify-between bg-white border border-slate-200 px-4 py-1 rounded-lg shadow-sm animate-in slide-in-from-right-4 duration-200"
-                                    >
-                                      <div className="flex items-center gap-3 overflow-hidden">
-                                        <span className="text-sm font-semibold text-slate-700 truncate">
-                                          {item.name}
-                                        </span>
-                                      </div>
-                                      <button
-                                        onClick={() => handleRemoveItem(item.id)}
-                                        className="p-1.5 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg transition-colors"
-                                      >
-                                        <X size={16} />
-                                      </button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-
-                              {/* Footer Logic */}
-                              <div className="p-3 bg-white border-t border-slate-100 shrink-0 flex flex-col gap-3">
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    placeholder="Type custom document name..."
-                                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    value={customDocInput}
-                                    onChange={(e) => setCustomDocInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddCustomDoc()}
-                                  />
-                                  <button
-                                    onClick={handleAddCustomDoc}
-                                    disabled={!customDocInput.trim()}
-                                    className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                  >
-                                    <ArrowRight size={16} />
-                                  </button>
-                                </div>
-                                <button
-                                  onClick={handleRequestDocuments}
-                                  disabled={selectedItems.length === 0}
-                                  className="w-full bg-blue-600 text-white py-1 rounded-lg font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
-                                >
-                                  <Send size={16} /> Send Document Request
-                                </button>
-                              </div>
-                            </div>
-
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-
-
-
-
-                  </div>
-                </div>
-
-
-
-
-
-                {/* Content Section */}
-                <div className="flex-1 overflow-y-auto p-6 relative scrollbar-hide">
-                  <div className="max-w-6xl mx-auto space-y-4">
-                    {displayDocs.length === 0 ? (
-                      <p className="text-base text-slate-400 text-center mt-20">No documents in this view.</p>
-                    ) : (
-                      <>
-                        {docTab === 'documents' && (
-                          <div className="flex items-center  justify-between bg-slate-100 rounded-xl p-2 mb-4 border border-slate-200 shadow-sm">
-                            <div
-                              className="flex items-center gap-3 cursor-pointer group/selectall"
-                              onClick={() => {
-                                if (selectedDocIds.length === displayDocs.length) setSelectedDocIds([]);
-                                else setSelectedDocIds(displayDocs.map(d => d.id));
-                              }}
-                            >
-                              <button className={`shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${selectedDocIds.length === displayDocs.length && displayDocs.length > 0 ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-transparent group-hover/selectall:border-blue-400'}`}>
-                                <Check size={18} className="stroke-[3]" />
-                              </button>
-                              <span className="text-sm p-1 font-semibold text-slate-700 group-hover/selectall:text-blue-600 transition-colors">Select All</span>
-                            </div>
-
-                            {selectedDocIds.length > 0 && (
-                              <button
-                                onClick={() => {
-                                  setMessages(prev => prev.map(m => selectedDocIds.includes(m.id) ? { ...m, inDepository: docTab === 'documents' } : m));
-                                  setSelectedDocIds([]);
-                                }}
-                                className="text-xs font-semibold py-1 px-2  bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm flex items-center gap-2"
-                              >
-                                {docTab === 'documents' ? 'Move to Depository' : 'Remove from Depository'}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {displayDocs.map((doc) => (
-                          <div
-                            key={`full-${doc.id}`}
-                            className={`flex flex-col sm:flex-row items-center justify-between border border-slate-200 rounded-xl p-2 bg-white shadow-sm hover:shadow-md transition gap-2 w-full ${doc.inDepository ? 'opacity-75' : ''} ${selectedDocIds.includes(doc.id) ? 'border-blue-400 bg-blue-50/10' : ''}`}
-                          >
-                            {/* LEFT SIDE: Checkbox, Icon, File Name & Details */}
-                            <div className="flex items-center gap-4 flex-1 overflow-hidden w-full group/item">
-                              {docTab === 'documents' && (
-                                <div
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedDocIds(prev => prev.includes(doc.id) ? prev.filter(id => id !== doc.id) : [...prev, doc.id]);
-                                  }}
-                                  className={`shrink-0 w-5 h-5 rounded-md border flex items-center justify-center cursor-pointer transition-colors ${selectedDocIds.includes(doc.id) ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 text-transparent hover:border-blue-400'}`}
-                                >
-                                  <Check size={14} className="stroke-[3]" />
-                                </div>
-                              )}
-                              <div
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedDoc(doc);
-                                }}
-                                className="flex items-center gap-4 flex-1 overflow-hidden cursor-pointer group/doc-link"
-                              >
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0 transition-colors group-hover/doc-link:bg-blue-100">
-                                  {doc.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? (
-                                    <Image size={20} />
-                                  ) : (
-                                    <FileText size={20} />
-                                  )}
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                  <h4 className={`text-sm font-semibold truncate group-hover/doc-link:text-blue-600 transition-colors ${doc.inDepository ? 'text-slate-500' : 'text-slate-800'}`} title={doc.fileName}>
-                                    {doc.fileName}
-                                  </h4>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-slate-500">{doc.fileSize}</span>
-                                    <span className="text-slate-300">•</span>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                      {doc.fullTimestamp}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* RIGHT SIDE: Approve / Reject Buttons */}
-                            <div
-                              className="shrink-0 flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {/* 2. REVERT BUTTON (Appears only after selection) */}
-                              {doc.docStatus !== 'requested' && doc.docStatus !== 'pending' && (
-                                <button
-                                  onClick={() => handleDocAction(doc.id, doc.isRequest ? 'requested' : 'pending')}
-                                  className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition"
-                                  title="Revert Status"
-                                >
-                                  <RotateCcw size={16} />
-                                </button>
-                              )}
-                              <div className="flex-1 sm:flex-none">
-                                {doc.docStatus === 'requested' ? (
-                                  <div className="flex gap-1.5">
-
-                                    <button
-                                      onClick={() => handleDocAction(doc.id, 'will_send_later')}
-                                      className="px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-all border-2 bg-amber-500 border-amber-500 text-white hover:bg-amber-600 rounded-lg whitespace-nowrap"
-                                    >
-                                      I will send later
-                                    </button>
-                                    <button
-                                      onClick={() => handleDocAction(doc.id, 'already_sent')}
-                                      className="px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-all border-2 bg-blue-500 border-blue-500 text-white hover:bg-blue-600 rounded-lg whitespace-nowrap"
-                                    >
-                                      Already sent
-                                    </button>
-                                    <button
-                                      onClick={() => handleDocAction(doc.id, 'not_applicable')}
-                                      className="px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-all border-2 bg-red-500 border-red-500 text-white hover:bg-red-600 rounded-lg whitespace-nowrap"
-                                    >
-                                      Not Applicable
-                                    </button>
-                                  </div>
-                                ) : doc.docStatus === 'pending' ? (
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleDocAction(doc.id, 'approved')}
-                                      className="px-2 py-1 text-[10px] font-black uppercase tracking-widest transition-all border-2 bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 rounded-lg"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => handleDocAction(doc.id, 'rejected')}
-                                      className="px-4 py-1 text-[10px] font-black uppercase tracking-widest transition-all border-2 bg-red-500 border-red-500 text-white hover:bg-red-600 rounded-lg"
-                                    >
-                                      Reject
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2">
-                                    <div className={`text-[10px] font-black px-2 py-1 rounded-full border-2 transition-all uppercase tracking-widest ${doc.docStatus === 'approved'
-                                      ? 'text-emerald-600 border-emerald-500 bg-emerald-50'
-                                      : doc.docStatus === 'rejected'
-                                        ? 'text-red-600 border-red-500 bg-red-50'
-                                        : doc.docStatus === 'already_sent'
-                                          ? 'text-blue-600 border-blue-500 bg-blue-50'
-                                          : doc.docStatus === 'will_send_later'
-                                            ? 'text-amber-500 border-amber-500 bg-amber-50'
-                                            : 'text-red-500 border-red-500 bg-red-50'
-                                      }`}>
-                                      {doc.docStatus.replace(/_/g, ' ')}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-
-                              {/* PAPERCLIP UPLOAD (Fulfills Request) */}
-                              {doc.docStatus === 'requested' && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // CRITICAL: Prevents row click from canceling dialog
-                                    setActiveRequestId(doc.id);
-                                    if (fileInputRef.current) {
-                                      fileInputRef.current.click();
-                                    }
-                                  }}
-                                  className="p-1 text-blue-600 hover:text-blue-700 transition-all flex items-center justify-center"
-                                  title="Upload Document"
-                                >
-                                  <span className="inline-block h-9 border-l-1 border border-blue-500 mr-3"></span>
-                                  <Paperclip size={20} className="" />
-                                </button>
-                              )}
-
-                              {/* 3. DELETE BUTTON (Hidden during request or approved phase) */}
-                              {doc.docStatus !== 'requested' && doc.docStatus !== 'approved' && (
-                                <button
-                                  onClick={() => handleDeleteDoc(doc.id)}
-                                  className="p-1 text-red-400 hover:text-red-600 transition-all flex items-center gap-2"
-                                  title="Delete Document"
-                                >
-                                  <Trash2 size={20} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                        }
-                      </>
-                    )}
-                  </div>
-                </div>
-
-              </div>
+              <DocumentsView
+                docTab={docTab}
+                setDocTab={setDocTab}
+                activeDocs={activeDocs}
+                depositoryDocs={depositoryDocs}
+                displayDocs={displayDocs}
+                filteredDisplayDocs={filteredDisplayDocs}
+                selectedDocIds={selectedDocIds}
+                setSelectedDocIds={setSelectedDocIds}
+                setSelectedDoc={setSelectedDoc}
+                setIsRequestModalOpen={setIsRequestModalOpen}
+                handleDocAction={handleDocAction}
+                handleDeleteDoc={handleDeleteDoc}
+                setDocSidebarOpen={setDocSidebarOpen}
+                fileInputRef={fileInputRef}
+                setActiveRequestId={setActiveRequestId}
+                setMessages={setMessages}
+              />
             )}
           </div>
-
-          {/* Quick Replies */}
-          {!taskIconOn && !docSidebarOpen && messages.filter(m => m.type === 'text').length <= 3 && (
-            <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/80 backdrop-blur-sm shrink-0 z-10">
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Quick Replies</p>
-              <div className="flex flex-wrap gap-2">
-                {QUICK_REPLIES.map((text, i) => (
-                  <button key={i} onClick={() => handleQuickReply(text)} className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full hover:bg-blue-100 transition-all font-medium">
-                    {text}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Input Area */}
-          {!taskIconOn && !docSidebarOpen && (
-            <div className="bg-white border-t border-slate-200 px-3 py-3 shrink-0 z-10">
-              {replyingTo && (
-                <div className="mx-2 mb-2 p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between border-l-4 border-l-blue-500 animate-fadeIn">
-                  <div className="flex flex-col overflow-hidden pr-4">
-                    <span className="text-[10px] font-bold text-blue-600 mb-0.5">Replying to {replyingTo.sender === 'user' ? 'yourself' : 'Assistant'}</span>
-                    <span className="text-xs text-slate-600 truncate">{replyingTo.type === 'document' ? replyingTo.fileName : replyingTo.text}</span>
-                  </div>
-                  <button onClick={() => setReplyingTo(null)} className="text-slate-400 hover:text-slate-600 p-1 shrink-0 bg-white rounded-full shadow-sm">
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
-              {pendingFiles.length > 0 && (
-                <div className="mx-2 mb-2 flex flex-col gap-1">
-                  {pendingFiles.map((file, index) => (
-                    <div key={index} className="p-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between animate-fadeIn">
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <FileText size={16} className="text-blue-600 shrink-0" />
-                        <span className="text-xs text-blue-800 truncate font-medium">{file.name}</span>
-                        <span className="text-[10px] text-blue-400 font-bold uppercase">{(file.size / 1024).toFixed(0)} KB</span>
-                      </div>
-                      <button
-                        onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== index))}
-                        className="text-blue-400 hover:text-red-500 transition-colors"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex items-end gap-2">
-                <div className="flex items-center gap-0.5">
-                  <button className="p-2 pb-4 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Smile size={20} /></button>
-                  <button onClick={() => fileInputRef.current?.click()} className={`p-2 pb-4 flex items-center rounded-lg transition-colors ${pendingFiles.length > 0 ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}>
-                    <Paperclip size={20} /></button>
-                </div>
-                <div className="flex-1 relative">
-                  <textarea ref={inputRef} rows={1} placeholder={pendingFiles.length > 0 ? "Add a caption..." : "Type a message..."} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} className="w-full resize-none px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" style={{ maxHeight: "120px" }} />
-                </div>
-                {(input.trim() || pendingFiles.length > 0) && (
-                  <button onClick={handleSend} className="p-2.5 mb-2 items-center bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-md active:scale-95"><Send size={18} /></button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </main>
 
@@ -1656,139 +1153,16 @@ const ChatBot = () => {
       `}</style>
 
       {/* --- ENHANCED PREVIEW POPUP (MODAL) --- */}
-      {selectedDoc && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-[#f8fafc] rounded-2xl w-full max-w-7xl h-[90vh] shadow-2xl overflow-hidden flex border border-slate-200">
-
-            {/* LEFT SIDEBAR: Files List */}
-            <div className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 className="font-semibold text-[14px] text-slate-700 flex items-center">
-                  Files<span className="text-[12px]">({messages.filter(m => m.type === 'document' && m.fileUrl).length})</span></h3>
-                <button
-                  onClick={() => {
-                    setActiveRequestId(null); // Clear context to add as new
-                    fileInputRef.current?.click();
-                  }}
-                  className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                  title="Upload New Document"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-2 hide-scrollbar">
-                {messages.filter(m => m.type === 'document' && m.fileUrl).map((doc) => (
-                  <div
-                    key={doc.id}
-                    onClick={() => setSelectedDoc(doc)}
-                    className={`p-2 rounded-2xl transition-all cursor-pointer group flex items-center gap-3 border ${selectedDoc.id === doc.id
-                      ? 'border-transparent hover:bg-slate-200'
-                      : 'border-transparent hover:bg-slate-50'
-                      }`}
-                  >
-                    <div className={`flex items-center justify-center p-2 rounded-xl shrink-0 transition-colors ${selectedDoc.id === doc.id ? 'text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
-                      {doc.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? (
-                        <Image size={20} />
-                      ) : doc.fileName.toLowerCase().endsWith('.pdf') ? (
-                        <PdfIcon size={20} />
-                      ) : (
-                        <FileText size={20} />
-                      )}
-                    </div>
-                    <div className="overflow-hidden flex flex-col justify-center">
-                      <p className={`text-[13px] font-semibold truncate ${selectedDoc.id === doc.id ? 'text-blue-600' : 'text-slate-700'}`}>{doc.fileName}</p>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">{doc.fileSize}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* MAIN AREA: Preview & Actions */}
-            <div className="flex-1 flex flex-col bg-white">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 shadow-sm bg-white z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100">
-                    {selectedDoc.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? (
-                      <Image size={24} className="text-blue-600" />
-                    ) : selectedDoc.fileName.toLowerCase().endsWith('.pdf') ? (
-                      <PdfIcon size={24} />
-                    ) : (
-                      <FileText size={24} className="text-slate-500" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-800 text-lg leading-tight truncate max-w-md">{selectedDoc.fileName}</h4>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-slate-400 font-medium">{selectedDoc.fileSize}</span>
-                      <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                      <span className="text-xs text-slate-400 font-medium uppercase">{selectedDoc.fileName.split('.').pop()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-
-                  <button
-                    onClick={() => {
-                      handleDeleteDoc(selectedDoc.id);
-                      setSelectedDoc(null);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all font-semibold text-sm shadow-sm"
-                  >
-                    <Trash2 size={18} />
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (previewBlobUrl) {
-                        window.open(previewBlobUrl, '_blank');
-                      } else {
-                        window.open(selectedDoc.fileUrl, '_blank');
-                      }
-                    }}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                  >
-                    <ExternalLink size={20} />
-                  </button>
-                  <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                  <button
-                    onClick={() => setSelectedDoc(null)}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  >
-                    <X size={24} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="flex-1 bg-slate-100/50 p-6 overflow-hidden relative">
-                <div className="w-full h-full bg-white rounded-xl shadow-inner border border-slate-200 overflow-hidden">
-                  {selectedDoc.fileUrl ? (
-                    selectedDoc.fileName.toLowerCase().endsWith('.pdf') ? (
-                      <iframe src={selectedDoc.fileUrl} className="w-full h-full border-none" title="PDF Preview" />
-                    ) : selectedDoc.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? (
-                      <div className="w-full h-full flex items-center justify-center p-4 bg-slate-50">
-                        <img src={selectedDoc.fileUrl} alt="Preview" className="max-w-full max-h-full object-contain shadow-lg rounded-lg" />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                        <FileText size={64} className="mb-4 opacity-20" />
-                        <p className="text-lg font-medium">Preview not available for this file type</p>
-                        <button onClick={() => window.open(selectedDoc.fileUrl, '_blank')} className="mt-4 text-blue-600 font-bold hover:underline">Download to View</button>
-                      </div>
-                    )
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 italic">No file data available</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
+      <DocumentPreviewModal
+        selectedDoc={selectedDoc}
+        setSelectedDoc={setSelectedDoc}
+        messages={messages}
+        handleDeleteDoc={handleDeleteDoc}
+        fileInputRef={fileInputRef}
+        setActiveRequestId={setActiveRequestId}
+        previewBlobUrl={previewBlobUrl}
+        PdfIcon={PdfIcon}
+      />
     </div>
   );
 };

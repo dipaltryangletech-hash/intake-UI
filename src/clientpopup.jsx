@@ -49,25 +49,9 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
     const randomColor = tailwindColors[Math.floor(Math.random() * tailwindColors.length)];
 
     const clientId = editData ? editData.id : Date.now();
-    const currentClientLinkObj = { id: clientId, name: form.name };
-
-    // 1. Remove this client from EVERY other client's linked list first (clean slate)
-    let updatedClients = client.map(c => ({
-      ...c,
-      linkedClients: (c.linkedClients || []).filter(lc => lc.id !== clientId)
-    }));
-
-    // 2. Add this client back to the selected linked clients
-    const selectedIds = linkedClients.map(lc => lc.id);
-    updatedClients = updatedClients.map(c => {
-      if (selectedIds.includes(c.id)) {
-        return { ...c, linkedClients: [...(c.linkedClients || []), currentClientLinkObj] };
-      }
-      return c;
-    });
 
     if (editData) {
-      setClient(updatedClients.map(c => c.id === clientId ?
+      setClient(client.map(c => c.id === clientId ?
         { ...c, ...form, linkedClients, initials: generateInitials(form.name) } : c
       ));
     } else {
@@ -81,7 +65,7 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
         inviteDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         lastLogin: null
       };
-      setClient([newClient, ...updatedClients]);
+      setClient([newClient, ...client]);
     }
     closePopup();
   };
@@ -120,23 +104,23 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-[1.5px]">Basic Information</span>
             </div>
 
-            <form onSubmit={handleSubmit} className=" pt-3 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <form onSubmit={handleSubmit} className=" pt-3 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 md:gap-x-0">
 
                 {/* 1. Client Name */}
-                <div className="space-y-1 pl-6">
+                <div className="space-y-1 px-6 md:pr-3 md:pl-6">
                   <label className="text-[10px] font-medium uppercase text-slate-500 tracking-wider">Client Name<span className="text-red-500"> *</span></label>
                   <input name="name" required value={form.name} onChange={handleChange} placeholder="Enter Full Name" className=" text-[12px] w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none" />
                 </div>
 
                 {/* 2. Company */}
-                <div className="space-y-1 pr-6">
+                <div className="space-y-1 px-6 md:pl-3 md:pr-6">
                   <label className="text-[10px] font-medium uppercase text-slate-500 tracking-wider">Company</label>
                   <input name="company" value={form.company} onChange={handleChange} placeholder="Enter Company Name" className=" text-[12px] w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none" />
                 </div>
 
                 {/* 3. Email Address (Now Always Visible, ReadOnly in Edit Mode) */}
-                <div className="space-y-1 pl-6">
+                <div className="space-y-1 px-6 md:pr-3 md:pl-6">
                   <label className="text-[10px] font-medium uppercase text-slate-500 tracking-wider">Email Address<span className="text-red-500"> *</span></label>
                   <input
                     type="email"
@@ -151,7 +135,7 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
                 </div>
 
                 {/* 4. Phone Number */}
-                <div className="space-y-1 pr-6 ">
+                <div className="space-y-1 px-6 md:pl-3 md:pr-6">
                   <label className="text-[10px] font-medium uppercase text-slate-500 tracking-wider">Phone Number</label>
                   <input name="phone" value={form.phone} onChange={handleChange} placeholder="+1 000 000-0000" className=" text-[12px] w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none" />
                 </div>
@@ -159,13 +143,13 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
 
               {/* 5. Link Clients */}
               <div className="px-6 relative">
-                <label className="text-[10px] font-medium uppercase text-slate-600 tracking-[1px]">Link Clients</label>
+                <label className="text-[10px] font-medium uppercase text-slate-500 tracking-[1px]">Link Clients</label>
 
                 {/* Selected Tags (Above Input) */}
                 {linkedClients.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 mb-2 pb-1 mt-1">
                     {linkedClients.map((c) => (
-                      <span key={c.id} className="flex items-center gap-1.5 px-2.5 py-1 bg-[#f4f8ff] text-blue-600 text-[12px] font-medium rounded-md border border-blue-200 shadow-sm">
+                      <span key={c.id} className="flex items-center gap-1.5 px-2.5 py-1 bg-[#f4f8ff] text-blue-600 text-[12px] font-medium rounded-md border border-slate-200 shadow-sm">
                         {c.name}
                         <button type="button" onClick={() => setLinkedClients(prev => prev.filter(lc => lc.id !== c.id))} className="text-red-500 hover:text-red-700 transition-colors ml-0.5">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -202,7 +186,7 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
                       }
                     }}
                     onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
-                    className="w-full bg-white border border-blue-400 rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-[13px] px-3 py-2.5 shadow-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-[13px] px-3 py-2.5 shadow-sm"
                   />
 
                   {showClientDropdown && (

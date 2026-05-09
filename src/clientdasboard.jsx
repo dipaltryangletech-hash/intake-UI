@@ -294,7 +294,7 @@ const ClientDashboard = () => {
                         {/* VIEW ICON */}
                         <button
                           onClick={() => handleView(doc.id)}
-                          className="p-1 flex justify-center items-start text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 flex justify-center items-start text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View"
                         >
                           <Eye size={16} />
@@ -303,25 +303,18 @@ const ClientDashboard = () => {
                         {/* EDIT ICON */}
                         <button
                           onClick={() => handleEdit(doc)}
-                          className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <SquarePen size={16} />
                         </button>
 
-                        {/* ADMIN REVIEW ICON */}
-                        <button
-                          onClick={() => navigate(`/adminassignmentreview/${doc.id.replace('#', '')}`)}
-                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Admin Review"
-                        >
-                          <CircleCheckBig size={16} />
-                        </button>
+
 
                         {/* DELETE ICON */}
                         <button
                           onClick={() => handleDelete(doc.id)}
-                          className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
                         >
                           <Trash2 size={16} />
