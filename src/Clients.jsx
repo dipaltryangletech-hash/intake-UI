@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './header';
 import Pagination from './pagination';
 import { useNavigate } from "react-router-dom";
-import { EllipsisVertical, Eye, SquarePen, MessageCircle, Trash, Search, ChevronDown, Check, ArrowUpDown } from 'lucide-react';
+import { EllipsisVertical, Eye, SquarePen, MessageCircle, Trash, Search, UserPlus, ChevronDown, Check, ArrowUpDown } from 'lucide-react';
 import ClientPopup from './clientpopup';
 import { useAuth } from "./Context/Auth/AuthContext";
 

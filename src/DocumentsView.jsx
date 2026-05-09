@@ -166,7 +166,7 @@ const DocumentsView = ({
               {/* Filters Container */}
               <div className=" max-w-[1450px] mx-auto space-y-3">
                 {/* SELECT YEAR ROW */}
-                <div className=" -mt-4 flex items-center gap-8">
+                <div className=" -mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
                   <label className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] w-28 shrink-0">
                     Select Year
                   </label>
@@ -199,7 +199,7 @@ const DocumentsView = ({
                 <div className="h-px bg-slate-100 w-full" />
 
                 {/* SELECT MONTH ROW */}
-                <div className="flex items-center gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
                   <label className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] w-28 shrink-0">
                     Select Month
                   </label>
@@ -257,8 +257,8 @@ const DocumentsView = ({
                                 onClick={() => toggleAsg(asgName)}
                                 className="flex flex-col gap-1 px-2 cursor-pointer bg-blue-50  border border-blue-100 p-2 rounded-xl transition-all group"
                               >
-                                <div className="flex items-center justify-between gap-2 w-full">
-                                  <div className="flex items-center gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
                                       <ChevronDown size={18} className="text-slate-600" />
                                     </div>
@@ -266,15 +266,15 @@ const DocumentsView = ({
                                       {asgName}
                                     </h3>
                                     <ChevronRight size={10} className="text-slate-500" />
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                                       {files[0]?.timestamp?.split(',')[0] || "06 MAY 2026"}
                                     </span>
                                     <div className="flex items-center gap-3">
                                       <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">{client}</span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-md border border-blue-100 shadow-sm">
+                                  <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
+                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-md border border-blue-100 shadow-sm whitespace-nowrap">
                                       {files.length} {files.length === 1 ? 'Document' : 'Documents'}
                                     </span>
                                   </div>
