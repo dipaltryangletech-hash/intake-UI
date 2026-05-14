@@ -100,18 +100,18 @@ const UserPopup = ({ isOpen, onClose, userData = null, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-      <div className="relative bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 md:p-8">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+      <div className="relative bg-white w-full h-full sm:h-auto max-w-xl rounded-none sm:rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col sm:max-h-[90vh]">
 
         {/* Header */}
-        <div className="bg-white border-b px-4 py-4 sm:px-6 sm:py-5 border-slate-100 shrink-0">
+        <div className="bg-white border-b px-6 py-5 sm:px-8 sm:py-6 shrink-0">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{isEdit ? 'Edit User' : 'Create New User'}</h2>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium uppercase tracking-wider">Internal access management</p>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">{isEdit ? 'Edit User' : 'Create New User'}</h2>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1 font-medium uppercase tracking-wider">Internal access management</p>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-full"><X size={20} /></button>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl"><X size={20} /></button>
           </div>
         </div>
 
@@ -140,7 +140,7 @@ const UserPopup = ({ isOpen, onClose, userData = null, onSave }) => {
         </div>
 
         {/* Content Area */}
-        <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+        <div className="overflow-y-auto flex-1 p-5 sm:p-8 custom-scrollbar bg-white">
           {activeTab === 'basic' ? (
             <div className="space-y-6">
               <div>
@@ -264,14 +264,13 @@ const UserPopup = ({ isOpen, onClose, userData = null, onSave }) => {
         </div>
 
         {/* Footer */}
-        {/* Buttons stack vertically on mobile, horizontal on sm+ */}
-        <div className="bg-[#f8fafc] border-t px-4 py-4 sm:px-6 sm:py-4 border-slate-100 flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-3 sm:gap-4 shrink-0">
-          <button onClick={onClose} className="w-full sm:w-auto text-sm font-bold text-slate-500 hover:text-slate-700 px-4 py-2.5 sm:py-2 transition text-center border sm:border-none border-slate-200 rounded-lg sm:rounded-none">
+        <div className="bg-slate-50 border-t px-6 py-5 sm:px-8 sm:py-6 border-slate-100 flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-4 shrink-0">
+          <button onClick={onClose} className="w-full sm:w-auto text-sm font-bold text-slate-500 hover:text-slate-700 px-6 py-3 transition text-center hover:bg-slate-100 rounded-xl">
             Cancel
           </button>
           <button
             onClick={handleUpdate}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 text-center flex items-center justify-center"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center"
           >
             {isEdit ? 'Update User' : 'Save & Invite User'}
           </button>

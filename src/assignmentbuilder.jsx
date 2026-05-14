@@ -16,8 +16,8 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
-    DragOverlay, // Add this
-    defaultDropAnimationSideEffects // Add this for smoother landing
+    DragOverlay,
+    defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -71,22 +71,22 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
     return (
         <div ref={setNodeRef} style={style} className="border border-slate-200 rounded-xl bg-white shadow-sm hover:border-blue-200 transition-all">
             <div
-                className={`p-2 flex rounded-t-2xl items-center justify-between cursor-pointer ${q.isExpanded ? 'bg-slate-50' : ''}`}
+                className={`p-2 flex flex-col sm:flex-row rounded-t-2xl items-start sm:items-center justify-between gap-3 sm:gap-0 cursor-pointer ${q.isExpanded ? 'bg-slate-50' : ''}`}
                 onClick={() => updateQuestion(sIdx, qIdx, 'isExpanded', !q.isExpanded)}
             >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     {/* Handle attached to Grip icon */}
-                    <div {...listeners} {...attributes} className=" text-blue-400 cursor-grab active:cursor-grabbing p-1 hover:bg-blue-50 rounded">
+                    <div {...listeners} {...attributes} className=" text-blue-400 cursor-grab active:cursor-grabbing p-2 sm:p-1 hover:bg-blue-50 rounded">
                         <GripHorizontal size={16} />
                     </div>
-                    <span className="w-7 h-7 rounded-full bg-blue-50 text-[10px] font-black flex items-center justify-center text-blue-400 border border-blue-100">
+                    <span className="w-7 h-7 shrink-0 rounded-full bg-blue-50 text-[10px] font-black flex items-center justify-center text-blue-400 border border-blue-100">
                         {qIdx + 1}
                     </span>
-                    <span className="text-sm font-bold text-slate-700 uppercase tracking-tight">
+                    <span className="text-sm font-bold text-slate-700 uppercase tracking-tight break-all sm:break-normal">
                         {q.title || "QUESTION TITLE REQUIRED..."}
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
                     <button onClick={(e) => { e.stopPropagation(); /* Clone logic can be added here */ }} className="p-2 text-blue-400 hover:bg-blue-50 rounded-lg"><Copy size={16} /></button>
                     <button onClick={(e) => { e.stopPropagation(); deleteQuestion(sIdx, qIdx); }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
                     <ChevronDown size={18} className={`text-slate-300 transition-transform ${q.isExpanded ? 'rotate-180 text-blue-500' : ''}`} />
@@ -94,7 +94,7 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
             </div>
 
             {q.isExpanded && (
-                <div className="px-4 py-4 space-y-[10px] animate-in fade-in slide-in-from-top-1">
+                <div className="px-3 sm:px-4 py-4 space-y-[10px] animate-in fade-in slide-in-from-top-1">
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest block ml-1">Question Title *</label>
                         <input
@@ -115,7 +115,7 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                             placeholder="Provide additional instructions here..."
                         />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 items-start lg:items-end">
                         {/* 1. ANSWER TYPE */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Answer Type</label>
@@ -147,7 +147,7 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                         </div>
 
                         {/* 2. MANDATORY */}
-                        <label className="flex pb-2 items-center gap-4 cursor-pointer group whitespace-nowrap">
+                        <label className="flex pb-0 lg:pb-2 items-center gap-4 cursor-pointer group whitespace-nowrap">
                             <input
                                 type="checkbox"
                                 className="w-4 h-4 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 transition-all"
@@ -158,7 +158,7 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                         </label>
 
                         {/* 3. ALLOW DOCUMENT UPLOAD */}
-                        <label className="flex pb-2 items-center gap-4 cursor-pointer group whitespace-nowrap">
+                        <label className="flex pb-0 lg:pb-2 items-center gap-4 cursor-pointer group whitespace-nowrap">
                             <input
                                 type="checkbox"
                                 className="w-4 h-4 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 transition-all"
@@ -170,10 +170,10 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                         </label>
 
                         {/* 4. PAPERCLIP ICON UPLOAD (New Column) */}
-                        <div className="pb-1 flex flex-end max-w-[300px] w-full">
+                        <div className="pb-0 lg:pb-1 flex lg:justify-end w-full">
                             {!q.attachedFileName ? (
-                                <label className=" text-slate-500 hover:text-blue-500 border -mb-1 hover:border-blue-400 hover:bg-blue-50 p-1 rounded-lg cursor-pointer transition-all ">
-                                    <div className="p-1 hover:bg-blue-50  flex items-center gap-2 max-w-[170px]">
+                                <label className="text-slate-500 hover:text-blue-500 border lg:-mb-1 hover:border-blue-400 hover:bg-blue-50 p-1 rounded-lg cursor-pointer transition-all w-full lg:w-auto">
+                                    <div className="p-1 hover:bg-blue-50 flex items-center justify-center lg:justify-start gap-2 max-w-full lg:max-w-[170px]">
                                         <Paperclip size={16} className="flex-shrink-0" />
                                         <span className="text-[10px] font-black text-slate-500 truncate uppercase tracking-widest">
                                             Attach Sample File
@@ -196,14 +196,16 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                                     />
                                 </label>
                             ) : (
-                                <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 px-2 py-2 -mb-1 rounded-md animate-in fade-in zoom-in-95">
-                                    <FileText size={14} className="text-blue-600" />
-                                    <span className="text-[10px] font-bold text-blue-700 truncate max-w-[150px]">
-                                        {q.attachedFileName}
-                                    </span>
+                                <div className="flex w-full lg:w-auto items-center justify-between lg:justify-start gap-1 bg-blue-50 border border-blue-100 px-2 py-2 lg:-mb-1 rounded-md animate-in fade-in zoom-in-95">
+                                    <div className="flex items-center gap-2">
+                                        <FileText size={14} className="text-blue-600" />
+                                        <span className="text-[10px] font-bold text-blue-700 truncate max-w-[200px] lg:max-w-[150px]">
+                                            {q.attachedFileName}
+                                        </span>
+                                    </div>
                                     <button
                                         onClick={() => updateQuestion(sIdx, qIdx, 'attachedFileName', null)}
-                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -214,17 +216,17 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
 
                     {/* 3. DYNAMIC DATA SECTION (Options/Table) */}
                     {(q.answerType !== 'SHORT_TEXT' && q.answerType !== 'LONG_TEXT' && q.answerType !== 'YES_NO') && (
-                        <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-4 mt-6 animate-in fade-in duration-300">
+                        <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 sm:p-4 mt-6 animate-in fade-in duration-300">
                             {/* OPTIONS LIST */}
                             {(q.answerType === 'MULTIPLE_CHOICE' || q.answerType === 'CHECKBOX') && (
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center mb-4">
+                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
                                         <div className="flex items-center gap-2">
-                                            <List size={18} className="text-blue-600" />
+                                            <List size={18} className="text-blue-600 shrink-0" />
                                             <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider">Configure Options List</span>
                                         </div>
                                         {(!q.options || q.options.length === 0) && (
-                                            <button onClick={addOption} className="bg-white px-5 py-2.5 border border-slate-200 rounded-xl text-blue-600 font-bold text-[10px] uppercase flex items-center gap-2 hover:bg-blue-50 transition-all shadow-sm">
+                                            <button onClick={addOption} className="bg-white w-full sm:w-auto justify-center px-5 py-2.5 border border-slate-200 rounded-xl text-blue-600 font-bold text-[10px] uppercase flex items-center gap-2 hover:bg-blue-50 transition-all shadow-sm">
                                                 <Plus size={14} /> Add First Option
                                             </button>
                                         )}
@@ -233,27 +235,27 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                                         {(q.options || []).map((opt, index) => {
                                             const isLastItem = index === (q.options || []).length - 1;
                                             return (
-                                                <div key={opt.id} className="flex items-center gap-3 animate-in zoom-in-95">
-                                                    <span className="text-[10px] font-semibold text-slate-400 px-2 min-w-[24px]">
+                                                <div key={opt.id} className="flex items-center gap-2 sm:gap-3 animate-in zoom-in-95">
+                                                    <span className="text-[10px] font-semibold text-slate-400 px-1 sm:px-2 min-w-[20px] sm:min-w-[24px] text-center">
                                                         {index + 1}
                                                     </span>
                                                     <input
                                                         type="text"
-                                                        className="flex-1 text-[12px] font-semibold text-slate-700 border border-slate-200 p-2 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none bg-white shadow-sm"
+                                                        className="flex-1 text-[12px] font-semibold text-slate-700 border border-slate-200 p-2 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none bg-white shadow-sm w-full"
                                                         placeholder={`Option ${index + 1}...`}
                                                         value={opt.text}
                                                         onChange={(e) => updateOption(opt.id, e.target.value)}
                                                     />
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={() => deleteOption(opt.id)} className="p-3 text-red-500    " title="Remove Option">
+                                                    <div className="flex items-center gap-1 sm:gap-2">
+                                                        <button onClick={() => deleteOption(opt.id)} className="p-2 sm:p-3 text-red-500" title="Remove Option">
                                                             <CircleX size={16} />
                                                         </button>
                                                         {isLastItem ? (
-                                                            <button onClick={addOption} className="p-3 text-blue-600 " title="Add Next Option">
+                                                            <button onClick={addOption} className="p-2 sm:p-3 text-blue-600" title="Add Next Option">
                                                                 <Plus size={16} />
                                                             </button>
                                                         ) : (
-                                                            <div className="w-[46px]"></div>
+                                                            <div className="w-[32px] sm:w-[40px]"></div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -266,58 +268,63 @@ const SortableQuestion = ({ q, qIdx, sIdx, updateQuestion, deleteQuestion, answe
                             {/* TABLE CONFIG */}
                             {q.answerType === 'TABLE' && (
                                 <div className="space-y-4 animate-in fade-in duration-300">
-                                    <div className="flex justify-between items-center mb-4">
+                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
                                         <div className="flex items-center gap-2">
-                                            <Table size={18} className="text-blue-500" />
+                                            <Table size={18} className="text-blue-500 shrink-0" />
                                             <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider">Configure Table Columns</span>
                                         </div>
                                         {(!q.tableColumns || q.tableColumns.length === 0) && (
-                                            <button onClick={addTableColumn} className="bg-white px-5 py-2.5 border border-slate-200 rounded-xl text-blue-600 font-bold text-[10px] uppercase flex items-center gap-2 hover:bg-blue-50 transition-all shadow-sm">
+                                            <button onClick={addTableColumn} className="bg-white w-full sm:w-auto justify-center px-5 py-2.5 border border-slate-200 rounded-xl text-blue-600 font-bold text-[10px] uppercase flex items-center gap-2 hover:bg-blue-50 transition-all shadow-sm">
                                                 <Plus size={14} /> Add First Column
                                             </button>
                                         )}
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2 sm:space-y-1">
                                         {(q.tableColumns || []).map((col, index) => {
                                             const isLastItem = index === (q.tableColumns || []).length - 1;
                                             return (
-                                                <div key={col.id} className="flex flex-col md:flex-row items-center gap-3 bg-white transition-all hover:border-slate-200">
-                                                    <span className="text-[10px] font-bold text-slate-300 px-2 min-w-[24px]">
-                                                        {index + 1}
-                                                    </span>
-                                                    <input
-                                                        type="text"
-                                                        className="flex-1 w-full text-xs font-bold text-slate-700 border border-slate-100 p-2 rounded-lg outline-none focus:ring-1 focus:border-blue-500"
-                                                        placeholder="Column Label"
-                                                        value={col.name}
-                                                        onChange={(e) => updateTableColumn(col.id, 'name', e.target.value)}
-                                                    />
-                                                    <div className="relative w-full md:w-40 overflow-visible" ref={colTypeRef}>
-                                                        <div onClick={() => setOpenColTypeDropdownId(openColTypeDropdownId === col.id ? null : col.id)} className={`w-full text-[11px] font-black text-slate-500 border p-2.5 rounded-xl bg-slate-50 flex justify-between items-center cursor-pointer transition-all shadow-sm hover:border-slate-300 ${openColTypeDropdownId === col.id ? 'border-blue-500 ring-2 ring-blue-50' : 'border-slate-100'}`}>
-                                                            <span className="uppercase">{col.type}</span>
-                                                            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${openColTypeDropdownId === col.id ? 'rotate-180 text-blue-500' : ''}`} />
-                                                        </div>
-                                                        {openColTypeDropdownId === col.id && (
-                                                            <div className="absolute z-50 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-md p-2">
-                                                                {tableColumnTypes.map((t) => (
-                                                                    <div key={t} onClick={() => { updateTableColumn(col.id, "type", t); setOpenColTypeDropdownId(null); }} className={`px-3 py-2 text-[11px] font-semibold rounded-lg cursor-pointer transition ${col.type === t ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}>
-                                                                        {t}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
+                                                <div key={col.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 bg-white p-2 sm:p-0 rounded-lg sm:rounded-none transition-all hover:border-slate-200 border border-slate-100 sm:border-transparent">
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+                                                        <span className="text-[10px] font-bold text-slate-300 px-1 sm:px-2 min-w-[20px] sm:min-w-[24px] text-center">
+                                                            {index + 1}
+                                                        </span>
+                                                        <input
+                                                            type="text"
+                                                            className="flex-1 w-full text-xs font-bold text-slate-700 border border-slate-100 p-2 rounded-lg outline-none focus:ring-1 focus:border-blue-500"
+                                                            placeholder="Column Label"
+                                                            value={col.name}
+                                                            onChange={(e) => updateTableColumn(col.id, 'name', e.target.value)}
+                                                        />
                                                     </div>
-                                                    <div className="flex items-center gap-2 ml-2 min-w-[80px] justify-end">
-                                                        <button onClick={() => deleteTableColumn(col.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete Column">
-                                                            <CircleX size={16} />
-                                                        </button>
-                                                        {isLastItem ? (
-                                                            <button onClick={addTableColumn} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors animate-in zoom-in-50 duration-300" title="Add Next Column">
-                                                                <Plus size={20} />
+
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pl-7 sm:pl-0">
+                                                        <div className="relative w-full sm:w-32 md:w-40 overflow-visible" ref={colTypeRef}>
+                                                            <div onClick={() => setOpenColTypeDropdownId(openColTypeDropdownId === col.id ? null : col.id)} className={`w-full text-[11px] font-black text-slate-500 border p-2.5 rounded-xl bg-slate-50 flex justify-between items-center cursor-pointer transition-all shadow-sm hover:border-slate-300 ${openColTypeDropdownId === col.id ? 'border-blue-500 ring-2 ring-blue-50' : 'border-slate-100'}`}>
+                                                                <span className="uppercase">{col.type}</span>
+                                                                <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${openColTypeDropdownId === col.id ? 'rotate-180 text-blue-500' : ''}`} />
+                                                            </div>
+                                                            {openColTypeDropdownId === col.id && (
+                                                                <div className="absolute z-50 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-md p-2">
+                                                                    {tableColumnTypes.map((t) => (
+                                                                        <div key={t} onClick={() => { updateTableColumn(col.id, "type", t); setOpenColTypeDropdownId(null); }} className={`px-3 py-2 text-[11px] font-semibold rounded-lg cursor-pointer transition ${col.type === t ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}>
+                                                                            {t}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-1 sm:gap-2 ml-0 sm:ml-2 min-w-[70px] sm:min-w-[80px] justify-end">
+                                                            <button onClick={() => deleteTableColumn(col.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete Column">
+                                                                <CircleX size={16} />
                                                             </button>
-                                                        ) : (
-                                                            <div className="w-[36px]"></div>
-                                                        )}
+                                                            {isLastItem ? (
+                                                                <button onClick={addTableColumn} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors animate-in zoom-in-50 duration-300" title="Add Next Column">
+                                                                    <Plus size={20} />
+                                                                </button>
+                                                            ) : (
+                                                                <div className="w-[32px] sm:w-[36px]"></div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
@@ -368,7 +375,7 @@ const SortableSection = ({ section, sIdx, assignment, setAssignment, updateQuest
         <div ref={setNodeRef} style={{ ...style, ...overlayStyle }}
             className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible transition-shadow duration-300 relative ${isOverlay ? 'z-[100]' : ''}`} >
             <div className="relative flex justify-center py-1 bg-slate-50/50 border-b rounded-t-xl border-slate-100 px-2">
-                <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-blue-400 hover:text-blue-500 transition-colors">
+                <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-blue-400 hover:text-blue-500 transition-colors p-1">
                     <GripHorizontal size={20} />
                 </div>
                 <button
@@ -379,13 +386,13 @@ const SortableSection = ({ section, sIdx, assignment, setAssignment, updateQuest
                             setAssignment({ ...assignment, sections: ns });
                         }
                     }}
-                    className="absolute right-4 p-1 text-red-400 hover:text-red-500 transition-all"
+                    className="absolute right-2 sm:right-4 p-2 sm:p-1 text-red-400 hover:text-red-500 transition-all"
                 >
                     <Trash2 size={16} />
                 </button>
             </div>
 
-            <div className={`p-2 flex items-center justify-between gap-4 ${section.isExpanded ? 'bg-slate-50/30' : ''}`}>
+            <div className={`p-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 ${section.isExpanded ? 'bg-slate-50/30' : ''}`}>
                 <input
                     type="text"
                     value={section.name}
@@ -394,10 +401,10 @@ const SortableSection = ({ section, sIdx, assignment, setAssignment, updateQuest
                         ns[sIdx].name = e.target.value;
                         setAssignment({ ...assignment, sections: ns });
                     }}
-                    className="bg-slate-50/50 font-bold text-sm border border-slate-200 ml-2 p-3 rounded-lg outline-none uppercase tracking-tight w-full text-slate-600 placeholder:text-slate-400 focus:border-blue-300 transition-all"
+                    className="bg-slate-50/50 font-bold text-sm border border-slate-200 ml-0 sm:ml-2 p-3 rounded-lg outline-none uppercase tracking-tight w-full text-slate-600 placeholder:text-slate-400 focus:border-blue-300 transition-all"
                     placeholder="PLEASE ENTER SECTION NAME..."
                 />
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between w-full sm:w-auto gap-3 px-2 sm:px-0">
                     <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-3 py-2 rounded-lg whitespace-nowrap">
                         {section.questions.length} Questions
                     </span>
@@ -415,7 +422,7 @@ const SortableSection = ({ section, sIdx, assignment, setAssignment, updateQuest
             </div>
 
             {section.isExpanded && (
-                <div className="p-4 space-y-4">
+                <div className="p-3 sm:p-4 space-y-4">
                     <DndContext collisionDetection={closestCenter} onDragStart={handleSectionDragStart} onDragEnd={handleSectionDragEnd}  >
                         <SortableContext items={section.questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
                             <div className="space-y-4">
@@ -435,7 +442,6 @@ const SortableSection = ({ section, sIdx, assignment, setAssignment, updateQuest
                     </DndContext>
 
                     {/* Section drag */}
-
 
                     <button
                         onClick={() => addQuestion(sIdx)}
@@ -719,10 +725,10 @@ const AssignmentBuilder = () => {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-poppins pb-0">
-            <header className="bg-white border-b border-slate-200 px-8 py-2 flex justify-between items-center mb-3">
+            <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-3">
                 {/* LEFT SIDE: Title Group */}
-                <div className="flex items-center gap-3">
-                    <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-200">
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-200 shrink-0">
                         <Layout size={18} />
                     </div>
                     <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
@@ -731,44 +737,44 @@ const AssignmentBuilder = () => {
                 </div>
 
                 {/* RIGHT SIDE: Buttons Grouped Together */}
-                <div className="flex items-center gap-5">
+                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5 w-full md:w-auto">
                     <button
                         onClick={handleCancel}
-                        className="text-slate-500 hover:text-slate-800 px-4 py-2.5 text-[10px] border border-slate-300 hover:bg-gray-50 px-6 py-2 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 transition-colors "
+                        className="w-full sm:w-auto justify-center text-slate-500 hover:text-slate-800 py-2.5 sm:px-6 sm:py-2 text-[10px] border border-slate-300 hover:bg-gray-50 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 transition-colors"
                     >
                         Cancel
                     </button>
 
                     <button
                         onClick={saveAssignment}
-                        className="bg-blue-50 text-blue-600 border-2 border-blue-300 px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-100 transition-colors"
+                        className="w-full sm:w-auto justify-center bg-blue-50 text-blue-600 border-2 border-blue-300 py-2.5 sm:px-8 sm:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-100 transition-colors"
                     >
                         <Save size={14} /> {isEditMode ? 'Save & Draft' : 'Save & Draft'}
                     </button>
 
                     <button
                         onClick={saveAssignment}
-                        className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                        className="w-full sm:w-auto justify-center bg-blue-600 text-white py-2.5 sm:px-8 sm:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 flex items-center gap-2 hover:bg-blue-700 transition-colors"
                     >
                         <Save size={14} /> {isEditMode ? 'Update Assignment' : 'Send Assignment'}
                     </button>
                 </div>
             </header>
 
-            <main className="max-w-5xl mx-auto p-4 space-y-8">
+            <main className="max-w-5xl mx-auto p-3 sm:p-4 space-y-6 sm:space-y-8">
                 {isDetailsVisible && (
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 grid grid-cols-4 gap-8 mb-6 animate-in fade-in slide-in-from-top-4">
-                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><Hash size={10} className="inline mr-1" /> ID</p><p className="text-sm font-bold text-blue-600 mt-2">{assignment.id}</p></div>
-                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><User size={10} className="inline mr-1" /> Creator</p><p className="text-sm font-bold text-slate-800 mt-2">{assignment.createdBy}</p></div>
-                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><Clock size={10} className="inline mr-1" /> Created</p><p className="text-sm font-bold text-slate-600 mt-2">{assignment.createdOn}</p></div>
-                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><Flag size={10} className="inline mr-1" /> Priority</p><p className="text-sm font-bold text-blue-500 mt-2">{assignment.priority}</p></div>
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-4 sm:mb-6 animate-in fade-in slide-in-from-top-4">
+                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><Hash size={10} className="inline mr-1" /> ID</p><p className="text-xs sm:text-sm font-bold text-blue-600 mt-1 sm:mt-2">{assignment.id}</p></div>
+                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><User size={10} className="inline mr-1" /> Creator</p><p className="text-xs sm:text-sm font-bold text-slate-800 mt-1 sm:mt-2 truncate">{assignment.createdBy}</p></div>
+                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><Clock size={10} className="inline mr-1" /> Created</p><p className="text-xs sm:text-sm font-bold text-slate-600 mt-1 sm:mt-2">{assignment.createdOn}</p></div>
+                        <div><p className="text-[9px] font-black text-slate-400 uppercase"><Flag size={10} className="inline mr-1" /> Priority</p><p className="text-xs sm:text-sm font-bold text-blue-500 mt-1 sm:mt-2">{assignment.priority}</p></div>
                     </div>
                 )}
 
-                <div className="bg-[#eef2ff] rounded-2xl p-5 mb-12 text-black border border-[#e0e7ff] shadow-sm">
-                    <div className="grid grid-cols-12 gap-3">
-                        <div className="col-span-8 space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#eef2ff] rounded-2xl p-4 sm:p-5 mb-8 sm:mb-12 text-black border border-[#e0e7ff] shadow-sm">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-3">
+                        <div className="lg:col-span-8 space-y-4 lg:space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-3">
                                 <div className="relative" ref={clientRef}>
                                     <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">Client Name <span className='text-red-400 text-[12px]'>*</span></label>
 
@@ -820,7 +826,7 @@ const AssignmentBuilder = () => {
                                                                     setClientSearch("");
                                                                     setIsClientOpen(false);
                                                                 }}
-                                                                className={`group px-4 py-1 text-[10px] font-semibold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center mb-1 last:mb-0 border rounded-md
+                                                                className={`group px-4 py-1.5 text-[10px] font-semibold tracking-wide uppercase cursor-pointer transition-all duration-200 flex justify-between items-center mb-1 last:mb-0 border rounded-md
                                             ${assignment.client === c.name
                                                                         ? 'bg-blue-50 border-[#c7d4f9] text-blue-600 shadow-sm'
                                                                         : 'bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:border-slate-100 hover:text-blue-600'}`}
@@ -846,13 +852,13 @@ const AssignmentBuilder = () => {
 
                                 <div>
                                     <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">Assignment Name <span className='text-red-400 text-[12px]'>*</span></label>
-                                    <input type="text" placeholder="e.g. Annual Audit" className="w-full bg-white/100 border border-slate-100 rounded-xl px-2 py-2.5 text-xs font-semibold outline-none focus:border-[#c7d4f9] hover:border-[#c7d4f9] transition-all text-slate-600 placeholder:text-slate-400 placeholder:font-medium" value={assignment.name} onChange={(e) => setAssignment({ ...assignment, name: e.target.value })} />
+                                    <input type="text" placeholder="e.g. Annual Audit" className="w-full bg-white/100 border border-slate-100 rounded-xl px-4 lg:px-2 py-2.5 text-xs font-semibold outline-none focus:border-[#c7d4f9] hover:border-[#c7d4f9] transition-all text-slate-600 placeholder:text-slate-400 placeholder:font-medium" value={assignment.name} onChange={(e) => setAssignment({ ...assignment, name: e.target.value })} />
                                 </div>
                             </div>
 
 
                             {/* WRAPPER FOR SIDE-BY-SIDE DROPDOWNS */}
-                            <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-4 mb-3">
 
                                 {/* ========================================= */}
                                 {/* 1st REVIEWER DROPDOWN */}
@@ -911,7 +917,7 @@ const AssignmentBuilder = () => {
                                                                     // 3. Close the dropdown
                                                                     setIsReviewer1Open(false);
                                                                 }}
-                                                                className={`group px-4 py-1 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
+                                                                className={`group px-4 py-1.5 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
                                 ${assignment.reviewer1 === c.name
                                                                         ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
                                                                         : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600'}`}
@@ -994,7 +1000,7 @@ const AssignmentBuilder = () => {
                                                                     // 3. Close the dropdown
                                                                     setIsReviewer2Open(false);
                                                                 }}
-                                                                className={`group px-4 py-1 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
+                                                                className={`group px-4 py-1.5 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
                                 ${assignment.reviewer2 === c.name
                                                                         ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
                                                                         : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600'}`}
@@ -1022,31 +1028,33 @@ const AssignmentBuilder = () => {
                             </div>
                             <div>
                                 <label className="text-[10px] ml-1 text-gray-700 font-black uppercase mb-2 block tracking-[0.2em]">Description (Optional)</label>
-                                <textarea placeholder="Describe scope..." rows={6} className="w-full bg-white/100 border border-slate-100 hover:border-[#c7d4f9] rounded-xl px-4 py-2 text-xs font-semibold outline-none focus:border-[#c7d4f9] transition-all text-slate-600 font-semibold placeholder:text-slate-400 placeholder:font-medium resize-none" />
+                                <textarea placeholder="Describe scope..." rows={6} className="w-full bg-white/100 border border-slate-100 hover:border-[#c7d4f9] rounded-xl px-4 py-2 text-xs font-semibold outline-none focus:border-[#c7d4f9] transition-all text-slate-600 placeholder:text-slate-400 placeholder:font-medium resize-none" />
                             </div>
                         </div>
 
-                        <div className="col-span-4 flex flex-col">
-                            <label className="text-[10px] ml-1 font-black text-gray-700 uppercase block tracking-[0.2em]">Set Priority<span className="text-red-400 text-[12px] "> *</span></label>
-                            <div className="relative" ref={priorityRef}>
-                                <button onClick={() => setIsPriorityOpen(!isPriorityOpen)} className="w-full mt-2 flex justify-between items-center bg-white/100 border border-slate-100 rounded-xl px-4 py-3 text-xs font-semibold uppercase text-slate-400 hover:border-[#c7d4f9] ">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${assignment.priority === 'High' ? 'bg-red-400' : 'bg-emerald-400'}`} />
-                                        {assignment.priority}
-                                    </div>
-                                    <ChevronDown size={16} className="text-blue-600" />
-                                </button>
-                                {isPriorityOpen && (
-                                    <div className="absolute z-[90] w-full bg-white/100 rounded-xl shadow-2xl p-2">
-                                        {priorityOptions.map(p => (
-                                            <div key={p.label} onClick={() => { setAssignment({ ...assignment, priority: p.label }); setIsPriorityOpen(false) }} className={`p-3 text-[10px] font-medium text-slate-700 hover:border-slate-100 uppercase hover:rounded-lg cursor-pointer hover:bg-blue-100 hover:text-blue-600 transition-all${p.color} text-slate-600`}>{p.label}</div>
-                                        ))}
-                                    </div>
-                                )}
+                        <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-0 mt-2 lg:mt-0">
+                            <div>
+                                <label className="text-[10px] ml-1 font-black text-gray-700 uppercase block tracking-[0.2em]">Set Priority<span className="text-red-400 text-[12px] "> *</span></label>
+                                <div className="relative" ref={priorityRef}>
+                                    <button onClick={() => setIsPriorityOpen(!isPriorityOpen)} className="w-full mt-2 flex justify-between items-center bg-white/100 border border-slate-100 rounded-xl px-4 py-3 text-xs font-semibold uppercase text-slate-400 hover:border-[#c7d4f9] ">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${assignment.priority === 'High' ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                                            {assignment.priority}
+                                        </div>
+                                        <ChevronDown size={16} className="text-blue-600" />
+                                    </button>
+                                    {isPriorityOpen && (
+                                        <div className="absolute z-[90] w-full bg-white/100 rounded-xl shadow-2xl p-2 mt-1">
+                                            {priorityOptions.map(p => (
+                                                <div key={p.label} onClick={() => { setAssignment({ ...assignment, priority: p.label }); setIsPriorityOpen(false) }} className={`p-3 text-[10px] font-medium text-slate-700 hover:border-slate-100 uppercase hover:rounded-lg cursor-pointer hover:bg-blue-100 hover:text-blue-600 transition-all ${p.color}`}>{p.label}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
 
-                            <div className="relative mt-3" ref={finalApproverRef}>
+                            <div className="relative lg:mt-3" ref={finalApproverRef}>
                                 {/* LABEL */}
                                 <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">
                                     Final Approver <span className='text-red-400 text-[12px]'>*</span>
@@ -1098,7 +1106,7 @@ const AssignmentBuilder = () => {
                                                                 setFinalApproverSearch("");
                                                                 setIsFinalApproverOpen(false);
                                                             }}
-                                                            className={`group px-4 py-1 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
+                                                            className={`group px-4 py-1.5 text-[12px] font-semibold tracking-wide cursor-pointer transition-all duration-200 flex justify-between items-center rounded-md border
                                     ${assignment.finalApprover === c.name
                                                                     ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm'
                                                                     : 'bg-white border-transparent text-slate-500 hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600'}`}
@@ -1123,7 +1131,7 @@ const AssignmentBuilder = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className="relative mt-3">
+                            <div className="relative lg:mt-3">
                                 {/* LABEL */}
                                 <label className="text-[10px] font-black text-gray-700 uppercase mb-2 ml-1 block tracking-[0.2em]">
                                     Select Due Date <span className='text-red-400 text-[12px]'>*</span>
@@ -1148,16 +1156,18 @@ const AssignmentBuilder = () => {
                                     {/* Note: [color-scheme:dark] handles the native icon color automatically */}
                                 </div>
                             </div>
-                            <label className="text-[10px] ml-1 mt-2 font-black text-gray-700 uppercase block tracking-[0.2em]">
-                                Select Checklist
-                            </label>
-                            <button
-                                onClick={() => setIsCopyPopupOpen(true)}
-                                className="mt-2 -mb-10 w-full h-[40px] bg-[#011e5c] text-white rounded-xl font-black text-[11px] uppercase flex items-center justify-center gap-3 shadow-lg transition-all hover:bg-[#022a7a]"
-                            >
-                                <Copy size={18} /> Copy From Master Checklist
-                            </button>
 
+                            <div className="mt-4 lg:mt-2 mb-0 lg:-mb-10 w-full">
+                                <label className="text-[10px] ml-1 font-black text-gray-700 uppercase block tracking-[0.2em]">
+                                    Select Checklist
+                                </label>
+                                <button
+                                    onClick={() => setIsCopyPopupOpen(true)}
+                                    className="mt-2 w-full h-[40px] bg-[#011e5c] text-white rounded-xl font-black text-[11px] uppercase flex items-center justify-center gap-3 shadow-lg transition-all hover:bg-[#022a7a]"
+                                >
+                                    <Copy size={18} /> Copy From Master Checklist
+                                </button>
+                            </div>
                         </div>
 
                     </div>
@@ -1166,7 +1176,7 @@ const AssignmentBuilder = () => {
                 {/* --- SORTABLE BUILDER SECTIONS --- */}
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
                     <SortableContext items={assignment.sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-10">
+                        <div className="space-y-6 sm:space-y-10">
                             {assignment.sections.map((section, sIdx) => (
                                 <SortableSection
                                     key={section.id}
@@ -1184,37 +1194,38 @@ const AssignmentBuilder = () => {
                     </SortableContext>
                 </DndContext>
 
-                <button onClick={addManualSection} className="w-full py-8 border-2 border-dashed border-slate-200 hover:border-blue-300 rounded-xl bg-white hover:bg-slate-50 transition-all flex flex-col items-center justify-center gap-3 group">
-                    <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-blue-500 transition-all"><FileText size={20} /></div>
-                    <span className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-blue-600">Add Section Block</span>
+                <button onClick={addManualSection} className="w-full py-6 sm:py-8 border-2 border-dashed border-slate-200 hover:border-blue-300 rounded-xl bg-white hover:bg-slate-50 transition-all flex flex-col items-center justify-center gap-3 group mt-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-blue-500 transition-all"><FileText size={20} /></div>
+                    <span className="text-[11px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-blue-600">Add Section Block</span>
                 </button>
             </main>
 
-            <div className="w-full max-w-5xl mx-auto px-6 mt-12 mb-20">
-                <div className="bg-[#0f172a] rounded-2xl p-8 text-white shadow-2xl flex justify-between items-center border border-slate-700/50">
-                    <div className="flex items-center gap-4 pl-4">
+            <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12 mb-6 sm:mb-20">
+                <div className="bg-[#0f172a] rounded-2xl p-5 sm:p-8 text-white shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-0 border border-slate-700/50">
+                    <div className="flex items-center gap-4 pl-0 sm:pl-4">
                         <div className="w-10 h-8 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700"><div className="w-6 h-1 bg-blue-500 rounded-full"></div></div>
                         <div><h4 className="text-xs font-black uppercase tracking-widest">Builder Stats</h4><p className="text-[9px] text-slate-500 font-bold uppercase mt-1">Real-time update</p></div>
                     </div>
-                    <div className="flex gap-12 pr-8">
-                        <div className="text-center"><p className="text-2xl font-black text-blue-400 leading-none">{assignment.sections.length}</p><p className="text-[9px] font-black text-slate-500 uppercase mt-1">Sections</p></div>
-                        <div className="text-center"><p className="text-2xl font-black text-blue-400 leading-none">{assignment.sections.reduce((acc, s) => acc + s.questions.length, 0)}</p><p className="text-[9px] font-black text-slate-500 uppercase mt-1">Questions</p></div>
+                    <div className="flex gap-8 sm:gap-12 pr-0 sm:pr-8">
+                        <div className="text-center"><p className="text-xl sm:text-2xl font-black text-blue-400 leading-none">{assignment.sections.length}</p><p className="text-[9px] font-black text-slate-500 uppercase mt-1">Sections</p></div>
+                        <div className="text-center"><p className="text-xl sm:text-2xl font-black text-blue-400 leading-none">{assignment.sections.reduce((acc, s) => acc + s.questions.length, 0)}</p><p className="text-[9px] font-black text-slate-500 uppercase mt-1">Questions</p></div>
                     </div>
                 </div>
             </div>
 
-            <div className="w-full max-w-5xl mx-auto px-6 mt-12 mb-20">
-                <div className="bg-white rounded-2xl p-3 text-black flex justify-between items-center border border-[#c7d4f9]">
-                    <div className="flex items-center gap-4 pl-4">
-                        <div><h4 className="text-xs text-blue-700 font-semibold uppercase tracking-widest">Update Data </h4><p className="text-[9px] text-slate-500 font-bold uppercase mt-1">Live Update</p></div>
+            <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 mb-20">
+                <div className="bg-white rounded-2xl p-4 sm:p-3 text-black flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 border border-[#c7d4f9]">
+                    <div className="flex items-center gap-4 pl-0 sm:pl-4 w-full sm:w-auto justify-center sm:justify-start">
+                        <div className="text-center sm:text-left"><h4 className="text-xs text-blue-700 font-semibold uppercase tracking-widest">Update Data </h4><p className="text-[9px] text-slate-500 font-bold uppercase mt-1">Live Update</p></div>
                     </div>
-                    <div className="flex gap-4 pr-4">
-                        <button onClick={saveAssignment} className="bg-blue-100 text-blue-600 border border-blue-300 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest  shadow-blue-100 flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pr-0 sm:pr-4 w-full sm:w-auto">
+                        <button onClick={saveAssignment} className="w-full sm:w-auto justify-center bg-blue-100 text-blue-600 border border-blue-300 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-blue-100 flex items-center gap-2">
                             <Save size={14} /> {isEditMode ? 'Save & Draft' : 'Save & Draft'}
                         </button>
-                        <button onClick={saveAssignment} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest  flex items-center gap-2 hover:bg-blue-700">
+                        <button onClick={saveAssignment} className="w-full sm:w-auto justify-center bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700">
                             <Save size={14} /> {isEditMode ? 'Update Assignment' : 'Send Assignment'}
-                        </button>                    </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
