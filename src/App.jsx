@@ -41,7 +41,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPassword/>} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Admin Specific Routes */}

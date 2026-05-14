@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './header';
-import Pagination from './pagination';
+import Pagination from './components/pagination';
 import { useNavigate } from "react-router-dom";
 import { EllipsisVertical, Eye, SquarePen, MessageCircle, Trash, Search, UserPlus, ChevronDown, Check, ArrowUpDown } from 'lucide-react';
 import ClientPopup from './clientpopup';
 import { useAuth } from "./Context/Auth/AuthContext";
+import Delete from './components/Deletepopup';
 
 const STATUS_OPTIONS = ["Active", "Invited", "Inactive", "Archived"];
 
@@ -13,13 +14,12 @@ const Clients = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 3;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Initialize Navigate
   const navigate = useNavigate();
   const { user } = useAuth();
   const canManageClients = user?.role === 'admin' || user?.rights?.includes("Client Creation");
-
 
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -33,7 +33,6 @@ const Clients = () => {
       { id: 3, name: 'Emily Davis', company: 'Davis Architecture', email: 'emily@davis-arch.com', phone: '+1 (555) 234-5678', status: 'Inactive', color: 'bg-slate-100 text-slate-500' },
     ];
   });
-
 
 
   const toggleStatus = (status) => {
@@ -60,6 +59,17 @@ const Clients = () => {
     const matchesStatus = selectedStatuses.length > 0 ? selectedStatuses.includes(item.status) : true;
     return matchesSearch && matchesStatus;
   });
+
+  const currentRowsPerPage = rowsPerPage === "" ? 1 : Number(rowsPerPage);
+  const totalPages = Math.ceil(filteredClients.length / currentRowsPerPage) || 1;
+  const startIdx = (currentPage - 1) * currentRowsPerPage;
+  const paginatedClients = filteredClients.slice(startIdx, startIdx + currentRowsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredClients.length, totalPages, currentPage]);
 
   useEffect(() => {
     localStorage.setItem("client", JSON.stringify(client));
@@ -105,7 +115,7 @@ const Clients = () => {
 
     <div className="flex bg-background text-on-background font-poppins">
       <main className=" flex-1 flex flex-col ">
-        <div className="flex-1 px-6 py-2 space-y-5 overflow-y-auto">
+        <div className="flex-1 px-6 py-2 space-y-3 overflow-y-auto scrollbar-hide">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex flex-col justify-start">
@@ -188,12 +198,12 @@ const Clients = () => {
                     {renderSortHeader("Last Login")}
                     {renderSortHeader("Invite Sent")}
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Linked Clients</th>
-                    <th className="px-2 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase flex items-center justify-center border-slate-200  last:rounded-tr-xl">Actions</th>
+                    <th className="px-2 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase text-center border-slate-200 last:rounded-tr-xl">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-200">
-                  {filteredClients.map((item) => (
+                  {paginatedClients.map((item) => (
                     <tr
                       key={item.id}
                       // Yahan path ko '/client-details' karein
@@ -282,18 +292,21 @@ const Clients = () => {
                           )}
 
                           {/* Delete Icon */}
-                          {canManageClients && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(item.id);
-                              }}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash size={16} />
-                            </button>
-                          )}
+                          {/* {canManageClients && ( */}
+                          {/* Delete Icon */}
+                          <Delete
+                            id={item.id}
+                            itemName="client"
+                            onDelete={async (id) => {
+                              const result = await deleteClient(id);
+                              if (!result.success) {
+                                toast.error(result.message || "Failed to delete client");
+                              } else {
+                                toast.success("Client deleted successfully!");
+                              }
+                            }}
+                          />
+                          {/* )} */}
                         </div>
                       </td>
                     </tr>
@@ -303,8 +316,14 @@ const Clients = () => {
             </div>
 
             <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between overflow-hidden rounded-b-xl">
-              <div className="flex items-center gap-4"><span className="text-[11px] text-slate-500 font-medium tracking-tight whitespace-nowrap">Showing {filteredClients.length} of {client.length} clients</span></div>
-              <div className="flex items-center gap-1.5"><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalRecords={filteredClients.length}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setCurrentPage}
+                onRowsPerPageChange={setRowsPerPage}
+              />
             </div>
           </div>
         </div>

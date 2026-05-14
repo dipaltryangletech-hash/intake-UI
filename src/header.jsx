@@ -77,7 +77,7 @@ const Header = () => {
   const closeMenu = () => setIsMenuOpen(false);
   return (
     <>
-      <div className="flex justify-between items-center bg-white shadow px-6 py-1 sticky top-0 z-40 h-14">
+      <div className="flex justify-between items-center bg-white shadow px-6 py-1 md:text-[20px] bg-slate-50 md:font-medium md:smoth-scroll sticky top-0 z-40 h-14">
         {/* LEFT: Logo */}
         <div className="flex items-center gap-8">
           <Link to="/" className="text-xl font-bold text-blue-700">
@@ -263,11 +263,11 @@ const Header = () => {
 
       {/* MOBILE/TABLET SIDEBAR */}
       <div
-        className={`fixed top-0 right-0 h-full w-64 bg-white shadow-xl z-[60] transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col ${isMenuOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 right-0 h-full w-[100%] bg-white shadow-xl z-[60] transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col ${isMenuOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <span className="font-bold text-blue-700">Menu</span>
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <span className="font-bold text-xl text-blue-700">Menu</span>
           <button
             onClick={closeMenu}
             className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
@@ -276,7 +276,7 @@ const Header = () => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-2">
           {/* Mobile Admin Links */}
           {user.role === "admin" &&
             ["Assignments", "Clients", "Users", "Master Checklist", "Documents"].map((item) => (

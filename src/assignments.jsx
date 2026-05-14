@@ -9,6 +9,7 @@ import {
   SquarePen,
   FolderPlus
 } from 'lucide-react';
+import Pagination from './components/pagination';
 
 const Assignments = () => {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ const Assignments = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const menuRef = useRef(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // 1. DATA STATE
   // 1. DATA STATE
@@ -74,6 +79,19 @@ const Assignments = () => {
       (item.client || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  // Calculate pagination
+  const currentRowsPerPage = rowsPerPage === "" ? 1 : Number(rowsPerPage);
+  const totalPages = Math.ceil(filteredAssignments.length / currentRowsPerPage) || 1;
+  const startIdx = (currentPage - 1) * currentRowsPerPage;
+  const paginatedAssignments = filteredAssignments.slice(startIdx, startIdx + currentRowsPerPage);
+
+  // Reset to page 1 if current page exceeds total pages after filtering
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredAssignments.length, totalPages, currentPage]);
 
   const stats = [
     { label: 'TOTAL ACTIVE', value: assignments.length.toString(), subValue: '+12%', subColor: 'text-green-500' },
@@ -268,7 +286,7 @@ const Assignments = () => {
 
             <thead>
               <tr className="bg-slate-100/50 border-b border-slate-200">
-                <th className="px-2 py-2 pl-4 text-center">
+                <th className="px-2 py-2 pl-3 text-center">
                   <input
                     type="checkbox"
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all"
@@ -288,7 +306,7 @@ const Assignments = () => {
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filteredAssignments.length > 0 ? filteredAssignments.map((item) => (
+              {paginatedAssignments.length > 0 ? paginatedAssignments.map((item) => (
                 <tr
                   key={item?.id}
                   onClick={(e) => {
@@ -464,18 +482,15 @@ const Assignments = () => {
         </div>
 
         {/* Footer Pagination */}
-        <div className="px-6 py-2 bg-slate-50 border-t rounded-b-2xl border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-8">
-            <p className="text-xs font-medium text-slate-500">
-              Showing <span className="text-slate-900">1 to {filteredAssignments.length}</span> of <span className="text-slate-900">{assignments.length}</span> results
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button className="p-1.5 border border-slate-200 rounded-md text-slate-400 hover:bg-white hover:text-slate-600 transition-all"><ChevronLeft size={16} /></button>
-            <button className="w-8 h-8 rounded-md bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-200">1</button>
-            <button className="w-8 h-8 rounded-md text-slate-600 hover:bg-white text-xs font-bold transition-all">2</button>
-            <button className="p-1.5 border border-slate-200 rounded-md text-slate-400 hover:bg-white hover:text-slate-600 transition-all"><ChevronRight size={16} /></button>
-          </div>
+        <div className="px-6 bg-slate-50 border-t rounded-b-2xl border-slate-200 overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={filteredAssignments.length}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setCurrentPage}
+            onRowsPerPageChange={setRowsPerPage}
+          />
         </div>
       </div>
 
@@ -515,8 +530,6 @@ const Assignments = () => {
               </div>
             </div>
 
-            {/* Top Accent Bar */}
-            {/* <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-red-400 opacity-20" /> */}
           </div>
         </div>
       )}

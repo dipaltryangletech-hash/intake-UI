@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 
 import { Link, useNavigate } from "react-router-dom";
-import Pagination from './pagination';
+import Pagination from './components/pagination';
 import {
   Plus,
   Search,

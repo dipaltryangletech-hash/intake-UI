@@ -47,6 +47,7 @@ import TasksView from './TasksView';
 import DocumentsView from './DocumentsView';
 import ChatView from './ChatView';
 import DocumentPreviewModal from './DocumentPreviewModal';
+import RequestDocumentsModal from './RequestDocumentsModal';
 
 const PdfIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -933,13 +934,7 @@ const ChatBot = () => {
           {/* Chat Header */}
           <div className=" sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2 flex items-center justify-between shrink-0 z-50">
             <div className="flex items-center gap-3">
-              {/* <button
-                onClick={() => handleClearStorage(storageKey)}
-                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-                title="Clear Chat History"
-              >
-                <Trash2 size={18} />
-              </button> */}
+              
               <button onClick={() => navigate(-1)} className="flex items-center text-white/90 transition hover:text-white">
                 <ChevronLeft size={20} />
                 <span className="text-sm font-medium ml-1">Back</span>
@@ -1162,6 +1157,25 @@ const ChatBot = () => {
         setActiveRequestId={setActiveRequestId}
         previewBlobUrl={previewBlobUrl}
         PdfIcon={PdfIcon}
+      />
+
+      {/* --- REQUEST DOCUMENTS MODAL --- */}
+      <RequestDocumentsModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        modalSearch={modalSearch}
+        setModalSearch={setModalSearch}
+        groups={groups}
+        selectedItems={selectedItems}
+        handleToggleSelect={handleToggleSelect}
+        customDocInput={customDocInput}
+        setCustomDocInput={setCustomDocInput}
+        handleAddCustomDoc={handleAddCustomDoc}
+        handleRemoveItem={handleRemoveItem}
+        handleRequestDocuments={handleRequestDocuments}
+        expandedGroups={expandedGroups}
+        toggleExpand={toggleExpand}
+        isSelected={isSelected}
       />
     </div>
   );

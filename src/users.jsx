@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Pagination from './pagination';
+import Pagination from './components/pagination';
 import UserPopup from "./userpopup";
 import UserDetails from "./userdetails";
 import { useAuth } from "./Context/Auth/AuthContext";
