@@ -74,7 +74,7 @@ const ClientPopup = ({ isOpen, setIsOpen, editData, setEditData, client, setClie
     <div className="flex items-center justify-end ">
       <button
         onClick={handleCreate}
-        className="w-[30px] sm:w-auto justify-center bg-[#1e56d3] hover:bg-blue-700 text-white px-4 py-2.5 sm:px-3 sm:py-2 text-[13px] sm:text-sm rounded-lg font-medium flex items-center gap-2 shadow-md transition-all active:scale-95"
+        className="w-[full] sm:w-auto justify-center bg-[#1e56d3] hover:bg-blue-700 text-white px-4 py-2.5 sm:px-3 sm:py-2 text-[13px] sm:text-sm rounded-lg font-medium flex items-center gap-2 shadow-md transition-all active:scale-95"
       >
         <UserPlus size={16} />
         Create Client
