@@ -100,7 +100,7 @@ const Clients = () => {
 
   const renderSortHeader = (label, className = "") => (
     <th
-      className={`px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase ${className}`}
+      className={`px-3 sm:px-4 py-2 sm:py-3 text-[10px] font-bold text-slate-400 tracking-widest uppercase whitespace-nowrap ${className}`}
     >
       <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600 transition-colors">
         {label}
@@ -113,16 +113,17 @@ const Clients = () => {
 
   return (
 
-    <div className="flex bg-background text-on-background font-poppins">
-      <main className=" flex-1 flex flex-col ">
-        <div className="flex-1 px-6 py-2 space-y-3 overflow-y-auto scrollbar-hide">
+    <div className="flex bg-background text-on-background font-poppins min-h-screen">
+      <main className="flex-1 flex flex-col w-full overflow-hidden">
+        <div className="flex-1 px-3 sm:px-4 md:px-6 py-4 sm:py-2 space-y-4 sm:space-y-3 overflow-y-auto scrollbar-hide">
+
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
             <div className="flex flex-col justify-start">
-              <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Clients</h2>
-              <p className="text-sm text-slate-500 mt-0.5">Manage and monitor client access and status.</p>
+              <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">Clients</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Manage and monitor client access and status.</p>
             </div>
-            <div className="flex justify-end">
+            <div className="flex w-full sm:w-auto justify-end">
               {canManageClients && (
                 <ClientPopup isOpen={isOpen} setIsOpen={setIsOpen} editData={editData} client={client} setClient={setClient} handleCreate={handleCreate} />
               )}
@@ -130,12 +131,12 @@ const Clients = () => {
           </div>
 
           {/* Filters & Search */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative" ref={filterRef}>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
+              <div className="relative w-full sm:w-auto" ref={filterRef}>
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className={`flex items-center gap-2 font-medium text-sm px-3 py-1.5 rounded-md transition-colors ${selectedStatuses.length > 0 ? 'bg-blue-600 text-white' : 'text-blue-600 hover:bg-blue-50'}`}
+                  className={`flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto font-medium text-sm px-3 py-2 sm:py-1.5 rounded-md transition-colors ${selectedStatuses.length > 0 ? 'bg-blue-600 text-white' : 'text-blue-600 border sm:border-none border-blue-100 hover:bg-blue-50'}`}
                 >
                   {selectedStatuses.length === 0 ? "Filter by Status" :
                     selectedStatuses.length === 1 ? selectedStatuses[0] :
@@ -144,15 +145,15 @@ const Clients = () => {
                 </button>
 
                 {isFilterOpen && (
-                  <div className="absolute left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] overflow-hidden">
+                  <div className="absolute left-0 mt-2 w-full sm:w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] overflow-hidden">
                     <div className="py-2">
                       {STATUS_OPTIONS.map((status) => (
                         <div
                           key={status}
                           onClick={() => toggleStatus(status)}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-[12px] text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer group"
+                          className="flex items-center gap-3 w-full px-4 py-2.5 sm:py-2 text-[12px] sm:text-[13px] text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer group"
                         >
-                          <div className={`size-4 rounded border flex items-center justify-center transition-colors ${selectedStatuses.includes(status) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 group-hover:border-blue-400'}`}>
+                          <div className={`size-4 rounded border flex items-center justify-center transition-colors shrink-0 ${selectedStatuses.includes(status) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 group-hover:border-blue-400'}`}>
                             {selectedStatuses.includes(status) && <Check size={12} className="text-white" />}
                           </div>
                           <span className={selectedStatuses.includes(status) ? "font-semibold text-slate-900" : ""}>{status}</span>
@@ -163,62 +164,73 @@ const Clients = () => {
                 )}
               </div>
               {selectedStatuses.length > 0 && (
-                <button onClick={() => setSelectedStatuses([])} className="text-[14px] font-medium text-red-500 transition-colors">Clear Filter</button>
+                <button onClick={() => setSelectedStatuses([])} className="text-[13px] sm:text-[14px] font-medium text-red-500 transition-colors mt-1 sm:mt-0">Clear Filter</button>
               )}
             </div>
 
-            <div className="relative w-full md:w-80">
+            <div className="relative w-full md:w-80 shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
                 type="text"
                 placeholder="Search clients..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none shadow-sm"
+                className="w-full pl-9 pr-3 py-2.5 sm:py-2 bg-white border border-slate-200 rounded-lg text-[13px] sm:text-sm focus:outline-none shadow-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
               />
             </div>
           </div>
 
           {/* Table */}
-          <div className="bg-white border-slate-200 border rounded-xl shadow-sm ">
-            <div className="">
-              <table className="w-full text-left table-fixed">
+          <div className="bg-white border-slate-200 border rounded-xl shadow-sm overflow-hidden flex flex-col w-full">
+            {/* Table wrapper for horizontal scroll */}
+            <div className="overflow-x-auto w-full custom-scrollbar pb-1 sm:pb-0">
+              <table className="w-full text-left table-fixed min-w-[1000px] lg:min-w-full">
                 <colgroup>
-                  {['10%', '10%', '10%', '8%', '8%', '9%', '7%', '8%', '8%'].map((width, idx) => (
+                  {['13%', '13%', '13%', '10%', '8%', '10%', '10%', '13%', '10%'].map((width, idx) => (
                     <col key={idx} style={{ width }} />
                   ))}
                 </colgroup>
-                <thead className="bg-slate-50 border-b border-slate-200 overflow-hidden">
+                <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    {renderSortHeader("Client Name", "px-6 first:rounded-tl-xl")}
-                    {renderSortHeader("Company Name")}
-                    {renderSortHeader("Email")}
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Phone</th>
-                    {renderSortHeader("Status")}
-                    {renderSortHeader("Last Login")}
-                    {renderSortHeader("Invite Sent")}
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Linked Clients</th>
-                    <th className="px-2 py-2 text-[10px] font-bold text-slate-400 tracking-widest uppercase text-center border-slate-200 last:rounded-tr-xl">Actions</th>
+                    {renderSortHeader("Client Name", "px-4 sm:px-6")}
+                    {renderSortHeader("Company Name", "px-3")}
+                    {renderSortHeader("Email", "px-3")}
+                    <th className="px-3 py-2 sm:py-3 text-[10px] font-bold text-slate-400 tracking-widest uppercase whitespace-nowrap">Phone</th>
+                    {renderSortHeader("Status", "px-3")}
+                    {renderSortHeader("Last Login", "px-3")}
+                    {renderSortHeader("Invite Sent", "px-3")}
+                    <th className="px-3 py-2 sm:py-3 text-[10px] font-bold text-slate-400 tracking-widest uppercase whitespace-nowrap">Linked Clients</th>
+                    <th className="px-2 py-2 sm:py-3 text-[10px] font-bold text-slate-400 tracking-widest uppercase text-center border-slate-200 whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-200">
-                  {paginatedClients.map((item) => (
+                  {paginatedClients.length > 0 ? paginatedClients.map((item) => (
                     <tr
                       key={item.id}
-                      // Yahan path ko '/client-details' karein
                       onClick={() => navigate('/client-details', { state: { id: item.id } })}
                       className="hover:bg-slate-50 transition-colors cursor-pointer group/row"
                     >
-                      <td className="px-6 py-1"><div className="flex items-center gap-2 truncate"><div className={`size-6 shrink-0 rounded-full flex items-center justify-center text-[12px] font-bold ${item.color}`}>{item.initials || item.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}</div><span className="text-[12px] font-semibold text-slate-900 truncate">{item.name}</span></div></td>
-                      <td className="px-2 py-2 text-[12px] text-slate-600 truncate">{item.company}</td>
-                      <td className="px-2 py-2 text-[12px] text-slate-600 truncate">{item.email}</td>
-                      <td className="px-2 py-2 text-[12px] text-slate-600 truncate">{item.phone}</td>
-                      <td className="px-2 py-2"><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusStyles(item.status)}`}><span className="size-1 rounded-full bg-current mr-1.5"></span>{item.status}</span></td>
-                      <td className="px-2 py-2 text-[12px] text-slate-500">{item.lastLogin || <span className="italic text-slate-400">—</span>}</td>
-                      <td className="px-2 py-2 text-[12px] text-slate-500">{item.inviteDate}</td>
-                      <td className="px-3 py-2">
-                        <div className="group/avatars relative flex items-center -space-x-1 cursor-default">
+                      <td className="px-4 sm:px-6 py-2.5 sm:py-1">
+                        <div className="flex items-center gap-2">
+                          <div className={`size-7 sm:size-6 shrink-0 rounded-full flex items-center justify-center text-[11px] sm:text-[12px] font-bold ${item.color}`}>
+                            {item.initials || item.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                          </div>
+                          <span className="text-[12px] font-semibold text-slate-900 truncate" title={item.name}>{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 sm:py-2 text-[12px] text-slate-600 truncate" title={item.company}>{item.company}</td>
+                      <td className="px-3 py-2.5 sm:py-2 text-[12px] text-slate-600 truncate" title={item.email}>{item.email}</td>
+                      <td className="px-3 py-2.5 sm:py-2 text-[12px] text-slate-600 truncate" title={item.phone}>{item.phone}</td>
+                      <td className="px-3 py-2.5 sm:py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusStyles(item.status)}`}>
+                          <span className="size-1 rounded-full bg-current mr-1.5"></span>{item.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 sm:py-2 text-[12px] text-slate-500 whitespace-nowrap">{item.lastLogin || <span className="italic text-slate-400">—</span>}</td>
+                      <td className="px-3 py-2.5 sm:py-2 text-[12px] text-slate-500 whitespace-nowrap">{item.inviteDate}</td>
+                      <td className="px-3 py-2.5 sm:py-2">
+                        <div className="group/avatars relative flex items-center -space-x-1 cursor-default w-fit">
                           {item.linkedClients?.slice().sort((a, b) => a.name.localeCompare(b.name)).slice(0, 3).map((lc, index) => {
                             const colors = ['bg-indigo-100 text-indigo-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700'];
                             const colorClass = colors[index % colors.length];
@@ -246,20 +258,20 @@ const Clients = () => {
                                 ))}
                               </div>
                               {/* Upward pointing arrow on the right side */}
-                              <div className="absolute bottom-full right-4 border-4 border-transparent border-b-slate-50"></div>
+                              <div className="absolute bottom-full right-4 border-4 border-transparent border-b-[#1F2937]"></div>
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-5 text-[12px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1 mt-2">
+                      <td className="px-3 sm:px-5 py-2.5 sm:py-2 text-[12px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1 sm:gap-1.5 mt-1 sm:mt-2">
                           {/* View Icon */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate('/client-details', { state: { id: item.id } });
                             }}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 sm:p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="View"
                           >
                             <Eye size={16} />
@@ -271,7 +283,7 @@ const Clients = () => {
                               e.stopPropagation();
                               navigate('/chatbot', { state: { clientId: item.id, name: item.name } });
                             }}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Message"
                           >
                             <MessageCircle size={16} />
@@ -284,16 +296,14 @@ const Clients = () => {
                                 e.stopPropagation();
                                 handleEdit(item);
                               }}
-                              className="p-1 text-center text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-1.5 sm:p-1 text-center text-slate-700 hover:bg-gray-100 rounded-lg transition-colors"
                               title="Edit"
                             >
                               <SquarePen size={16} />
                             </button>
                           )}
 
-                          {/* Delete Icon */}
-                          {/* {canManageClients && ( */}
-                          {/* Delete Icon */}
+                          {/* Delete Icon Component */}
                           <Delete
                             id={item.id}
                             itemName="client"
@@ -306,16 +316,21 @@ const Clients = () => {
                               }
                             }}
                           />
-                          {/* )} */}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="9" className="px-4 py-12 sm:py-16 text-center text-slate-400 font-medium text-[13px] sm:text-sm">
+                        No clients found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between overflow-hidden rounded-b-xl">
+            <div className="px-3 sm:px-4 py-2 sm:py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between overflow-hidden rounded-b-xl gap-3 sm:gap-0">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}

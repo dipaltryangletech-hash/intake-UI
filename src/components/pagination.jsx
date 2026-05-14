@@ -50,7 +50,7 @@ const Pagination = ({
   return (
     // Main container holding both the dropdown and the pagination buttons
     // flex-col on mobile, flex-row on desktop for responsive design
-    <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
+    <div className="flex flex-col py-3 sm:flex-row items-center justify-between w-full gap-4">
 
       {/* LEFT SIDE: "Rows per page" Dropdown & "Showing X to Y" text */}
       <div className="flex items-center gap-2 text-sm text-slate-500">

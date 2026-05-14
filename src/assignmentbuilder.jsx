@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    Save, Plus, Trash2, Layout, ChevronDown,
+    ArrowLeft, Save, Plus, Trash2, Layout, ChevronDown,
     ChevronUp, Clock, User, Hash, GripHorizontal, Paperclip, Search,
     Copy, FileText, Flag, Table, List,
     CircleX
@@ -728,8 +728,16 @@ const AssignmentBuilder = () => {
             <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-3">
                 {/* LEFT SIDE: Title Group */}
                 <div className="flex items-center gap-3 w-full md:w-auto">
+
+                    <div
+                        onClick={handleCancel}
+                        className="w-20 sm:w-auto justify-center text-slate-500 hover:text-slate-800 py-2 sm:px-6 sm:py-2 text-[10px] border border-slate-300 hover:bg-gray-50 rounded-xl  uppercase tracking-widest flex items-center gap-2 transition-colors"
+                    >
+                        <ArrowLeft size={16} className='font-bold' /><span className='text-slate-500 hover:text-slate-400 font-bold'>Back</span>
+                    </div>
+
                     <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-200 shrink-0">
-                        <Layout size={18} />
+                        <Layout size={16} />
                     </div>
                     <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
                         {isEditMode ? 'Edit Assignment' : 'Assignment Builder'}
